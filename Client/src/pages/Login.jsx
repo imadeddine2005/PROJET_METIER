@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react"
 import { FaSignInAlt } from "react-icons/fa"
-import {login , reset} from '../features/auth/authSlice'
+import { login, reset } from "../features/auth/authSlice"
 import { useSelector, useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import Spinner from "../components/Spinner"
 
+const inputClass =
+  "w-full rounded-lg border border-slate-200/90 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+
 function Login() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   })
 
   const { email, password } = formData
@@ -23,8 +26,9 @@ function Login() {
   useEffect(() => {
     if (isError) {
       toast.error(message)
-    } if (isSuccess || user) {
-      navigate('/')
+    }
+    if (isSuccess || user) {
+      navigate("/")
     }
     dispatch(reset())
   }, [user, isError, isSuccess, message, navigate, dispatch])
@@ -36,7 +40,7 @@ function Login() {
     }))
   }
 
-  const onSubmit = (e) => {    
+  const onSubmit = (e) => {
     e.preventDefault()
     const userData = {
       email,
@@ -50,47 +54,49 @@ function Login() {
   }
 
   return (
-    <>
-      <section className='heading'>
-        <h1>
-          <FaSignInAlt /> Login
+    <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center px-5 py-5 sm:py-6">
+      <section className="mb-5 text-center sm:mb-6">
+        <h1 className="flex items-center justify-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <FaSignInAlt className="h-6 w-6 text-indigo-600 sm:h-7 sm:w-7" aria-hidden />
+          Login
         </h1>
-        <p>Please sign in to your account</p>
+        <p className="mt-2 text-sm text-slate-600 sm:text-base">
+          Please sign in to your account
+        </p>
       </section>
 
-      <section className='form'>
-        <form onSubmit={onSubmit}>
-          
-          <div className='form-group'>
-            <input
-              type='email'
-              className='form-control'
-              id='email'
-              name='email'
-              value={email}
-              placeholder='Enter your email'
-              onChange={onChange}
-            />
-          </div>
-          <div className='form-group'>
-            <input
-              type='password'
-              className='form-control'
-              id='password'
-              name='password'
-              value={password}
-              placeholder='Enter password'
-              onChange={onChange}
-            />
-          </div>
-          <div className='form-group'>
-            <button type='submit' className='btn btn-block'>
-              Submit
-            </button>
-          </div>
+      <div className="rounded-xl border border-slate-200/80 bg-white/80 p-6 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm sm:p-7">
+        <form onSubmit={onSubmit} className="space-y-3 sm:space-y-4">
+          <input
+            type="email"
+            className={inputClass}
+            id="email"
+            name="email"
+            value={email}
+            placeholder="Enter your email"
+            onChange={onChange}
+            autoComplete="email"
+          />
+          <input
+            type="password"
+            className={inputClass}
+            id="password"
+            name="password"
+            value={password}
+            placeholder="Enter password"
+            onChange={onChange}
+            autoComplete="current-password"
+          />
+          <button
+            type="submit"
+            className="mt-2 w-full rounded-lg bg-indigo-600 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            Submit
+          </button>
         </form>
-      </section>
-    </>
+      </div>
+    </div>
   )
 }
+
 export default Login
