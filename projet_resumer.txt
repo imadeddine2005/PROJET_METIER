@@ -1,0 +1,53 @@
+# Description Générale — Partie Développement
+## SmartRecruit — Système Intelligent de Recrutement
+
+---
+
+## 1. Présentation du Projet
+
+SmartRecruit est une plateforme web de recrutement intelligente développée dans le cadre d'un projet académique de 2ème année IAGI à l'ENSAM Casablanca. La partie développement repose sur une architecture client-serveur moderne utilisant **React** pour le frontend et **Spring Boot** pour le backend, avec **MySQL** comme base de données relationnelle.
+
+La plateforme connecte trois types d'utilisateurs : les **candidats** qui consultent et postulent aux offres d'emploi, les **RH** qui gèrent les offres et consultent les candidatures, et les **Administrateurs** qui supervisent les accès aux données sensibles des candidats.
+
+---
+
+## 2. Objectifs de la Plateforme
+
+La plateforme répond à trois objectifs principaux.
+
+**Simplifier le processus de recrutement** en offrant aux RH un espace centralisé pour créer et gérer leurs offres d'emploi, consulter les candidatures reçues avec leurs scores de compatibilité, et suivre l'ensemble du processus de sélection depuis une seule interface.
+
+**Protéger la vie privée des candidats** grâce à un système d'anonymisation automatique des CVs intégré au module IA. Le RH ne voit jamais directement le CV brut d'un candidat. Il accède uniquement aux informations extraites et anonymisées. L'accès au CV complet est soumis à une demande qui doit être approuvée par un Administrateur, garantissant ainsi un contrôle humain sur chaque accès aux données sensibles.
+
+**Garantir la traçabilité des décisions** en enregistrant chaque action sensible dans la plateforme, notamment les demandes d'accès aux CVs, les approbations et les refus, afin d'assurer une transparence totale sur les décisions prises tout au long du processus de recrutement.
+
+---
+
+## 3. Fonctionnalités par Rôle
+
+### Candidat
+Le candidat crée un compte et se connecte à la plateforme. Depuis son espace, il navigue via une barre de navigation. Il peut consulter la liste de toutes les offres d'emploi disponibles et postuler directement en uploadant son CV. Après soumission, le score de compatibilité entre son CV et l'offre lui est affiché immédiatement. Il dispose également d'un espace pour suivre l'historique de toutes ses candidatures avec les scores obtenus, ainsi qu'une fonctionnalité lui permettant de découvrir le métier qui lui correspond le mieux selon une analyse de son CV par le module IA.
+
+### RH
+Le RH se connecte et accède à son espace via une barre latérale. Il peut créer et gérer ses offres d'emploi, consulter les candidatures reçues pour chaque offre avec les informations anonymisées des candidats et leurs scores de compatibilité. Lorsqu'un profil l'intéresse, il peut envoyer une demande d'accès au CV complet du candidat, demande qui sera soumise à l'approbation de l'Administrateur. Il dispose également d'un espace de suivi de toutes ses demandes d'accès avec leur statut en temps réel.
+
+### Administrateur
+L'Administrateur supervise la plateforme et joue le rôle de garant de la protection des données des candidats. Il consulte toutes les demandes d'accès aux CVs soumises par les RH et décide de les approuver ou de les refuser. Une fois une demande approuvée, le RH concerné peut accéder au CV original complet du candidat.
+
+---
+
+## 4. Sécurité et Gestion des Accès
+
+La sécurité de la plateforme repose sur une authentification par **JWT (JSON Web Token)**. Chaque utilisateur connecté reçoit un token qui l'identifie et définit ses droits d'accès. Ce mécanisme garantit que chaque utilisateur accède uniquement aux fonctionnalités et aux données qui correspondent à son rôle, sans jamais pouvoir accéder aux ressources des autres rôles.
+
+---
+
+## 5. Stockage des Fichiers
+
+Le stockage des CVs PDF est conçu pour fonctionner dans deux environnements. En développement, les fichiers sont stockés localement sur le serveur. En production sur AWS, les fichiers sont stockés dans un bucket **S3** avec un accès sécurisé via des liens temporaires, garantissant qu'aucun fichier sensible n'est accessible publiquement.
+
+---
+
+## 6. Déploiement
+
+La plateforme est déployée sur une infrastructure **AWS** configurée par l'équipe Cyber/Cloud, comprenant un serveur **EC2** pour le backend, une base de données **RDS MySQL** chiffrée pour le stockage des données, un bucket **S3** pour les fichiers PDF, et un **Secret Manager** pour la gestion sécurisée des clés et mots de passe.

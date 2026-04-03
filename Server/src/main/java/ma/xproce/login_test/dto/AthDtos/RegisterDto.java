@@ -1,4 +1,4 @@
-package ma.xproce.login_test.dto;
+package ma.xproce.login_test.dto.AthDtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

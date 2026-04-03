@@ -23,12 +23,20 @@ function Login() {
     (state) => state.auth
   )
 
+  const getRedirectPathByRole = (roles = []) => {
+    if (roles.includes("ROLE_ADMIN")) return "/admin"
+    if (roles.includes("ROLE_HR")) return "/hr"
+    if (roles.includes("ROLE_CANDIDAT")) return "/candidate"
+    return "/login"
+  }
+
   useEffect(() => {
     if (isError) {
       toast.error(message)
     }
     if (isSuccess || user) {
-      navigate("/")
+      const roles = Array.isArray(user?.roles) ? user.roles : []
+      navigate(getRedirectPathByRole(roles))
     }
     dispatch(reset())
   }, [user, isError, isSuccess, message, navigate, dispatch])

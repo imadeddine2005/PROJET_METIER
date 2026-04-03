@@ -8,10 +8,10 @@ import ma.xproce.login_test.dao.entities.user_entity;
 import ma.xproce.login_test.dao.reposetories.RoleReposetory;
 import ma.xproce.login_test.dao.reposetories.UserReposetory;
 import ma.xproce.login_test.dto.ApiResponse;
-import ma.xproce.login_test.dto.AuthResponseDto;
-import ma.xproce.login_test.dto.LoginDto;
-import ma.xproce.login_test.dto.RegisterDto;
-import ma.xproce.login_test.dto.RegisterResponseDto;
+import ma.xproce.login_test.dto.AthDtos.AuthResponseDto;
+import ma.xproce.login_test.dto.AthDtos.LoginDto;
+import ma.xproce.login_test.dto.AthDtos.RegisterDto;
+import ma.xproce.login_test.dto.AthDtos.RegisterResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,8 +48,27 @@ public class AuthController {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(logindto.getEmail(), logindto.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        // Récupérer l'utilisateur depuis la BD (on a l'email de l'authentification)
+        user_entity user = userReposetory.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Récupérer les rôles directement de l'authentification
+        java.util.List<String> roleNames = authentication.getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .toList();
+        
+        // Générer le token simple (juste email)
         String token = jwtGenerator.generateToken(authentication);
-        return ResponseEntity.ok(ApiResponse.success("Login success", new AuthResponseDto(token)));
+        
+        // Créer la réponse avec toutes les infos utilisateur
+        AuthResponseDto response = new AuthResponseDto(token);
+        response.setUserId(user.getId());
+        response.setEmail(user.getEmail());
+        response.setName(user.getName());
+        response.setRoles(roleNames);
+        
+        return ResponseEntity.ok(ApiResponse.success("Login success", response));
     }
 
     @PostMapping("/register")
@@ -57,8 +76,8 @@ public class AuthController {
         if (userReposetory.existsByEmail(register.getEmail())) {
             throw new UsernameAlreadyExistsException("Email already exists");
         }
-        roles role = roleReposetory.findByName("ROLE_USER")
-                .orElseThrow(() -> new ResourceNotFoundException("Role ROLE_USER not found. Run application to seed roles."));
+        roles role = roleReposetory.findByName("ROLE_CANDIDAT")
+                .orElseThrow(() -> new ResourceNotFoundException("Role ROLE_CANDIDAT not found. Run application to seed roles."));
 
         user_entity user = new user_entity();
         user.setName(register.getName());

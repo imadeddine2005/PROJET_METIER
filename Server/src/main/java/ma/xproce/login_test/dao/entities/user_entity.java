@@ -22,8 +22,19 @@ public class user_entity {
     @Column(unique = true)
     private String email;
     private String password;
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
     private List<roles> roles;
+    @OneToMany(mappedBy = "hr" , fetch =FetchType.LAZY)
+    private List<Offre> offres;
+
+    @OneToMany(mappedBy = "candidat", fetch = FetchType.LAZY)
+    private List<Candidature> candidatures;
+
+    @OneToMany(mappedBy = "hr", fetch = FetchType.LAZY)
+    private List<DemandeAccesCv> demandesAccesCv;
+
+    @OneToMany(mappedBy = "admin", fetch = FetchType.LAZY)
+    private List<DemandeAccesCv> demandesAccesCvTraitees;
 }

@@ -9,7 +9,18 @@ public class test_controleur {
     @GetMapping("/hello")
     public String hello(){
 
-        return "hello";
+        return "hello public";
+    }
+    @GetMapping("/hr")
+    public String hr(){
+
+        return "hello hr";
+    }
+
+    @GetMapping("/candidate")
+    public String condidat(){
+
+        return "hello condidat";
     }
 
     @GetMapping("/admin")
@@ -17,9 +28,5 @@ public class test_controleur {
         return "admin";
     }
 
-    @GetMapping("/user")
-    public String user(){
-        return "user";
-    }
 
 }

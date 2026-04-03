@@ -150,6 +150,54 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+        String msg = ex.getMessage() != null && !ex.getMessage().isBlank()
+                ? ex.getMessage()
+                : "Access denied";
+        ErrorResponse errorResponse = buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                msg,
+                "ACCESS_DENIED",
+                request,
+                null
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidFile(
+            InvalidFileException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                "INVALID_FILE",
+                request,
+                null
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidCandidatureStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidStatusTransition(
+            InvalidCandidatureStatusTransitionException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                "INVALID_STATUS_TRANSITION",
+                request,
+                null
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpectedErrors(
             Exception ex,
