@@ -51,7 +51,7 @@ public class LoginTestApplication implements CommandLineRunner {
         user_entity hr2 = userReposetory.findByEmail("hr2@gmail.com").orElse(null);
         
         if (hr1 != null) {
-            createOffreIfNotExists("Développeur Java", "Nous recherchons un développeur Java expérimenté", "Java, Spring Boot, SQL", hr1);
+            createOffreIfNotExists("Développeur Java", "Nous recherchons un développeur Java expérimenté ", "Java, Spring Boot, SQL", hr1);
             createOffreIfNotExists("Développeur React", "Besoin d'un expert React pour rejoindre notre équipe", "React, JavaScript, CSS", hr1);
         }
         
