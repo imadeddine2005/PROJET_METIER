@@ -1,6 +1,9 @@
 package ma.xproce.login_test.web;
 
+import ma.xproce.login_test.Services.AuditService;
 import ma.xproce.login_test.Services.ICandidatureOffre_Service;
+import ma.xproce.login_test.dao.entities.user_entity;
+import ma.xproce.login_test.dao.reposetories.UserReposetory;
 import ma.xproce.login_test.dto.ApiResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
 import org.springframework.http.HttpStatus;
@@ -21,9 +24,12 @@ import java.util.List;
 @RequestMapping("/candidate/api/candidatures")
 public class CandidatureCandidate_Controller {
     private final ICandidatureOffre_Service candidatureOffreService;
-
-    public CandidatureCandidate_Controller(ICandidatureOffre_Service candidatureOffreService) {
+    private final AuditService auditService;
+    private final UserReposetory userReposetory;
+    public CandidatureCandidate_Controller(ICandidatureOffre_Service candidatureOffreService, AuditService auditService, UserReposetory userReposetory) {
         this.candidatureOffreService = candidatureOffreService;
+        this.auditService = auditService;
+        this.userReposetory = userReposetory;
     }
 
     // Candidat — postuler à une offre avec CV
@@ -35,7 +41,16 @@ public class CandidatureCandidate_Controller {
             Authentication auth
     ) {
         CandidatureResponse response = candidatureOffreService.createCandidature(offreId, cvFile, auth.getName());
+        auditService.log(
+                auth.getName(),
+                getUserId(auth),
+                "CV_UPLOAD",
+                String.valueOf(response.getId()),
+                "SUCCES",
+                "offreId=" + offreId
+        );
         return new ResponseEntity<>(ApiResponse.success("Candidature envoyée avec succès", response), HttpStatus.CREATED);
+
     }
 
     // Candidat — voir toutes ses candidatures
@@ -44,6 +59,13 @@ public class CandidatureCandidate_Controller {
     public ResponseEntity<ApiResponse<List<CandidatureResponse>>> listMyCandidatures(Authentication auth) {
         List<CandidatureResponse> candidatures = candidatureOffreService.listMyCandidatures(auth.getName());
         return ResponseEntity.ok(ApiResponse.success("Vos candidatures", candidatures));
+    }
+
+    private Long getUserId(Authentication auth){
+        return userReposetory
+                .findByEmail(auth.getName())
+                .map(user_entity::getId)
+                .orElse(null);
     }
 }
 
