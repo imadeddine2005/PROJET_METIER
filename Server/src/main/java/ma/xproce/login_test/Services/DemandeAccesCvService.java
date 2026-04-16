@@ -59,17 +59,12 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvée"));
 
-        // 3. Vérifier HR propriétaire de l'offre
-        if (!authorizationUtils.isOffreOwnerOrAdmin(candidature.getOffre(), hr)) {
-            throw new AccessDeniedException("Vous ne pouvez pas demander l'accès à ce CV");
-        }
-
-        // 4. Prévenir doublons
+        // 3. Prévenir doublons (un HR ne peut créer qu'une seule demande par candidature)
         if (demandeRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId()).isPresent()) {
             throw new InvalidFileException("Vous avez déjà demandé l'accès à cette candidature");
         }
 
-        // 5. Créer la demande
+        // 4. Créer la demande
         DemandeAccesCv demande = new DemandeAccesCv();
         demande.setHr(hr);
         demande.setCandidature(candidature);
@@ -179,28 +174,51 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
         DemandeAccesCv demande = demandeRepository.findById(demandeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Demande non trouvée"));
 
-        // 2. Vérifier que le statut est APPROUVEE
+        // 2. Vérifier que le statut est APPROUVEE (admin a validé)
         if (demande.getStatus() != DemandeAccesCvStatus.APPROUVEE) {
-            throw new AccessDeniedException("Seules les demandes approuvées peuvent accéder au CV");
+            throw new AccessDeniedException("Seules les demandes approuvées permettent d'accéder au CV original");
         }
 
-        // 3. Vérifier que le HR est propriétaire de la demande
+        // 3. Vérifier que ce HR est propriétaire de la demande
         if (!demande.getHr().getEmail().equals(emailHr)) {
             throw new AccessDeniedException("Vous n'avez pas accès à cette demande");
         }
 
-        // 4. Récupérer le fichier CV
+        // 4. ✅ DEMANDE APPROUVÉE → on sert le CV ORIGINAL (nom réel, contacts visibles)
         String storageKey = demande.getCandidature().getCvFile().getStorageKey();
         String originalFileName = demande.getCandidature().getCvFile().getOriginalFileName();
-        
+
         if (storageKey == null || storageKey.isEmpty()) {
-            throw new InvalidFileException("Le fichier CV n'est pas disponible");
+            throw new InvalidFileException("Le fichier CV original n'est pas disponible");
         }
 
-        // 5. Télécharger via le service de stockage
         byte[] cvContent = cvFileStorageService.getFile(storageKey);
-        
-        // 6. Retourner le contenu + nom original
         return new CvDownloadResponse(cvContent, originalFileName);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CvDownloadResponse downloadAnonymizedCv(Long candidatureId, String emailHr) {
+        // Cette méthode est accessible à TOUT HR, même sans demande approuvée.
+        // Elle sert TOUJOURS le CV anonymisé (données personnelles caviardées).
+
+        // 1. Vérifier que le HR existe
+        userRepository.findByEmail(emailHr)
+                .orElseThrow(() -> new ResourceNotFoundException("HR non trouvé"));
+
+        // 2. Récupérer la candidature
+        Candidature candidature = candidatureRepository.findById(candidatureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvée"));
+
+        // 3. Récupérer la clé du PDF anonymisé
+        String anonymizedKey = candidature.getCvFile().getAnonymizedStorageKey();
+
+        if (anonymizedKey == null || anonymizedKey.isEmpty()) {
+            throw new InvalidFileException("Le CV anonymisé n'est pas encore disponible");
+        }
+
+        // 4. ✅ Servir le CV ANONYMISÉ (nom générique, sans données personnelles)
+        byte[] cvContent = cvFileStorageService.getFile(anonymizedKey);
+        return new CvDownloadResponse(cvContent, "cv_anonymise.pdf");
     }
 }

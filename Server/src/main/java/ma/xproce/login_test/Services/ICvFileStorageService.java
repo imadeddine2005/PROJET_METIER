@@ -14,6 +14,11 @@ public interface ICvFileStorageService {
     String saveFile(MultipartFile file);
 
     /**
+     * Sauvegarde un fichier à partir de bytes et retourne la clé de stockage
+     */
+    String saveFile(byte[] content, String originalFileName, String contentType);
+
+    /**
      * Supprime un fichier du stockage
      */
     void deleteFile(String storageKey);

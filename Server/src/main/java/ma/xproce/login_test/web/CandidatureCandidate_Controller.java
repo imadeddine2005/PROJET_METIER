@@ -3,7 +3,10 @@ package ma.xproce.login_test.web;
 import ma.xproce.login_test.Services.ICandidatureOffre_Service;
 import ma.xproce.login_test.dto.ApiResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
+import ma.xproce.login_test.dto.CvDownloadResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -45,5 +48,22 @@ public class CandidatureCandidate_Controller {
         List<CandidatureResponse> candidatures = candidatureOffreService.listMyCandidatures(auth.getName());
         return ResponseEntity.ok(ApiResponse.success("Vos candidatures", candidatures));
     }
-}
 
+    /**
+     * Candidat — visualiser son propre CV (inline dans le navigateur).
+     * URL : GET /candidate/api/candidatures/{candidatureId}/my-cv
+     * Sécurité : Vérifie que la candidature appartient bien au candidat connecté.
+     */
+    @GetMapping("/{candidatureId}/my-cv")
+    @PreAuthorize("hasRole('CANDIDAT')")
+    public ResponseEntity<byte[]> getMyCv(
+            @PathVariable Long candidatureId,
+            Authentication auth
+    ) {
+        CvDownloadResponse response = candidatureOffreService.getMyCv(candidatureId, auth.getName());
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + response.getFileName() + "\"")
+                .body(response.getContent());
+    }
+}

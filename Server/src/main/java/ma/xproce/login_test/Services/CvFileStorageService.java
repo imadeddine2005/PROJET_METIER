@@ -32,22 +32,37 @@ public class CvFileStorageService implements ICvFileStorageService {
     @Override
     public String saveFile(MultipartFile file) {
         try {
+            return saveFile(file.getBytes(), file.getOriginalFilename(), file.getContentType());
+        } catch (IOException e) {
+            throw new InvalidFileException("Erreur lors de la lecture du fichier MultipartFile", e);
+        }
+    }
+
+    /**
+     * Sauvegarde un fichier à partir de bytes et retourne la clé de stockage.
+     * Utilisé notamment pour sauver les versions anonymisées produites par l'IA.
+     */
+    @Override
+    public String saveFile(byte[] content, String originalFileName, String contentType) {
+        try {
             // Vérifier que le répertoire existe
             Path uploadPath = Paths.get(cvUploadDir).toAbsolutePath().normalize();
-            Files.createDirectories(uploadPath);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
-            // Générer un nom unique (UUID)
+            // Générer un nom unique (UUID) pour le stockage physique
             String fileName = UUID.randomUUID() + ".pdf";
             Path filePath = uploadPath.resolve(fileName);
 
-            // Sauvegarder le fichier
-            Files.write(filePath, file.getBytes());
+            // Sauvegarder le contenu
+            Files.write(filePath, content);
 
-            // Retourner la clé de stockage (chemin relatif)
+            // Retourner la clé de stockage (chemin relatif standardisé)
             return "cvs/" + fileName;
 
         } catch (IOException e) {
-            throw new InvalidFileException("Erreur lors de la sauvegarde du fichier CV", e);
+            throw new InvalidFileException("Erreur lors de la sauvegarde physique du fichier CV", e);
         }
     }
 

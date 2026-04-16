@@ -38,17 +38,17 @@ public class Candidature_HR_Controller {
         return ResponseEntity.ok(ApiResponse.success("Candidatures de l'offre", list));
     }
 
-    // HR seulement — changer le statut d'une candidature
+    // HR seulement — changer le statut d'une candidature (retourne la vue RH)
     @PutMapping("/{candidatureId}/status")
     @PreAuthorize("hasAnyRole('HR','ADMIN')")
-    public ResponseEntity<ApiResponse<CandidatureResponse>> updateStatus(
+    public ResponseEntity<ApiResponse<CandidatureHrResponse>> updateStatus(
             @PathVariable Long candidatureId,
             @RequestBody UpdateCandidatureStatusRequest request,
             Authentication auth
     ) {
-        CandidatureResponse response = candidatureOffreService.updateCandidatureStatus(
-            candidatureId, 
-            request.getNewStatus(), 
+        CandidatureHrResponse response = candidatureOffreService.updateCandidatureStatus(
+            candidatureId,
+            request.getNewStatus(),
             auth.getName()
         );
         return ResponseEntity.ok(ApiResponse.success("Statut mis à jour", response));

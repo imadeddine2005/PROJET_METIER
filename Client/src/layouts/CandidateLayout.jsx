@@ -7,12 +7,15 @@ function CandidateLayout() {
   const name = user?.name || "User"
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 to-brand-50/40 font-sans text-surface-800 overflow-x-hidden">
       <CandidateHeader />
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold text-slate-900">Hello {name}</h1>
-        <p className="mt-1 text-slate-600">Candidate space</p>
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 animate-fade-in">
+        {/* Main Content Pane */}
+        <div className="relative min-h-[60vh] rounded-2xl border border-white/50 bg-white/70 backdrop-blur-sm p-6 shadow-xl shadow-brand-900/5 sm:p-8 overflow-hidden">
+          {/* Subtle gradient glowing orbs - contained within the panel */}
+          <div className="absolute top-0 right-0 -z-10 w-72 h-72 bg-brand-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-20 animate-blob"></div>
+          <div className="absolute bottom-0 left-0 -z-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-20 animate-blob animation-delay-2000"></div>
+          
           <Outlet />
         </div>
       </div>

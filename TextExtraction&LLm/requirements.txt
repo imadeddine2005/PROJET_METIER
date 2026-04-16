@@ -1,0 +1,16 @@
+# Groq LLM
+groq>=0.4.1
+python-dotenv>=1.0.0
+
+# Flask API
+Flask>=2.3.0
+flask-cors>=4.0.0
+
+# PDF Extraction
+pdfplumber>=0.10.0
+PyMuPDF>=1.23.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# NLP & Language Detection
+langdetect>=1.0.9

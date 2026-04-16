@@ -5,9 +5,26 @@ import ma.xproce.login_test.dto.CandidatureDtos.CandidatureHrResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 @Component
 public class CandidatureMapper {
-    
+
+    /**
+     * Convertit une chaîne "Python,Docker,React" en liste ["Python", "Docker", "React"].
+     * Retourne une liste vide si la chaîne est null ou vide.
+     */
+    private List<String> parseList(String raw) {
+        if (raw == null || raw.isBlank()) return Collections.emptyList();
+        // On splitte principalement sur le nouveau séparateur "|"
+        // Regex: split sur "|" avec espaces optionnels autour.
+        return Arrays.stream(raw.split("\\s*\\|\\s*"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
 
     public CandidatureHrResponse toHrResponse(Candidature c) {
         CandidatureHrResponse dto = new CandidatureHrResponse();
@@ -15,7 +32,15 @@ public class CandidatureMapper {
         dto.setOffreId(c.getOffre() != null ? c.getOffre().getId() : null);
         Long candidatId = c.getCandidat() != null ? c.getCandidat().getId() : null;
         dto.setCandidatRef(candidatId != null ? "C-" + candidatId : null);
+
+        // Score IA
         dto.setScoreCompatibilite(c.getScoreCompatibilite());
+        dto.setScoreAnalysis(c.getScoreAnalysis());
+
+        // Données extraites du CV
+        dto.setCompetences(parseList(c.getCompetences()));
+        dto.setDiplomes(parseList(c.getDiplomes()));
+
         dto.setStatus(c.getStatus() != null ? c.getStatus().name() : null);
         dto.setDateSoumission(c.getDateSoumission());
         dto.setCvFileId(c.getCvFile() != null ? c.getCvFile().getId() : null);
@@ -27,17 +52,22 @@ public class CandidatureMapper {
         dto.setId(c.getId());
         dto.setOffreId(c.getOffre() != null ? c.getOffre().getId() : null);
         dto.setOffreTitre(c.getOffre() != null ? c.getOffre().getTitre() : null);
+
+        // Score IA (candidat voit le chiffre uniquement, pas l'analyse détaillée réservée aux RH)
         dto.setScoreCompatibilite(c.getScoreCompatibilite());
+
+        // Données extraites du CV
+        dto.setCompetences(parseList(c.getCompetences()));
+        dto.setDiplomes(parseList(c.getDiplomes()));
+
         dto.setStatus(c.getStatus() != null ? c.getStatus().name() : null);
         dto.setDateSoumission(c.getDateSoumission());
-        
-        // Infos CV (sans le fichier binaire)
+
         if (c.getCvFile() != null) {
             dto.setCvFileId(c.getCvFile().getId());
             dto.setCvFileName(c.getCvFile().getOriginalFileName());
         }
-        
+
         return dto;
     }
 }
-

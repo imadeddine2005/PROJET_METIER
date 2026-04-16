@@ -3,9 +3,11 @@ import Header from "../components/Header"
 
 function PublicLayout() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <Outlet />
+      <div className="flex-1 flex flex-col">
+        <Outlet />
+      </div>
     </div>
   )
 }

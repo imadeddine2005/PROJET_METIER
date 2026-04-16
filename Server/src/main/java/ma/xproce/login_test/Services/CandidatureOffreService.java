@@ -6,21 +6,27 @@ import ma.xproce.login_test.Mappers.CandidatureMapper;
 import ma.xproce.login_test.dao.entities.Candidature;
 import ma.xproce.login_test.dao.entities.CandidatureStatus;
 import ma.xproce.login_test.dao.entities.CvFile;
+import ma.xproce.login_test.dao.entities.DemandeAccesCvStatus;
 import ma.xproce.login_test.dao.entities.Offre;
 import ma.xproce.login_test.dao.entities.user_entity;
 import ma.xproce.login_test.dao.reposetories.CandidatureRepository;
 import ma.xproce.login_test.dao.reposetories.CvFileRepository;
+import ma.xproce.login_test.dao.reposetories.DemandeAccesCvRepository;
 import ma.xproce.login_test.dao.reposetories.OffreRepository;
 import ma.xproce.login_test.dao.reposetories.UserReposetory;
+import ma.xproce.login_test.dto.AiAnalysisResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureHrResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
+import ma.xproce.login_test.dto.CvDownloadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -34,10 +40,9 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
     private final ICvFileStorageService cvFileStorageService;
     private final AuthorizationUtils authorizationUtils;
     private final CandidatureStatusValidator statusValidator;
-
-    // Constantes de validation
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-    private static final String ALLOWED_FILE_TYPE = "application/pdf";
+    private final DemandeAccesCvRepository demandeAccesCvRepository;
+    private final AiService aiService;
+    private final CvFileValidationService cvFileValidator;
 
     @Autowired
     public CandidatureOffreService(
@@ -48,7 +53,10 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
             CandidatureMapper candidatureMapper,
             ICvFileStorageService cvFileStorageService,
             AuthorizationUtils authorizationUtils,
-            CandidatureStatusValidator statusValidator
+            CandidatureStatusValidator statusValidator,
+            DemandeAccesCvRepository demandeAccesCvRepository,
+            AiService aiService,
+            CvFileValidationService cvFileValidator
     ) {
         this.offreRepository = offreRepository;
         this.candidatureRepository = candidatureRepository;
@@ -58,30 +66,41 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         this.cvFileStorageService = cvFileStorageService;
         this.authorizationUtils = authorizationUtils;
         this.statusValidator = statusValidator;
+        this.demandeAccesCvRepository = demandeAccesCvRepository;
+        this.aiService = aiService;
+        this.cvFileValidator = cvFileValidator;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CandidatureHrResponse> listCandidaturesForOffre(Long offreId, String emailConnecte) {
-        user_entity connecte = userRepository.findByEmail(emailConnecte)
+        user_entity hr = userRepository.findByEmail(emailConnecte)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouve"));
 
-        Offre offre = offreRepository.findById(offreId)
+        offreRepository.findById(offreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offre non trouvee"));
 
-        if (!authorizationUtils.isOffreOwnerOrAdmin(offre, connecte)) {
-            throw new AccessDeniedException("Vous ne pouvez pas consulter les candidatures de cette offre");
-        }
-
         List<Candidature> list = candidatureRepository.findByOffreId(offreId);
-        return list.stream().map(candidatureMapper::toHrResponse).toList();
+        return list.stream().map(c -> {
+            CandidatureHrResponse dto = candidatureMapper.toHrResponse(c);
+            
+            // Check if HR has approved access to original CV
+            demandeAccesCvRepository.findByCandidatureIdAndHrId(c.getId(), hr.getId())
+                .ifPresent(demande -> {
+                    if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                        dto.setHasAccessToOriginalCv(true);
+                        dto.setDemandeAccesId(demande.getId());
+                    }
+                });
+            return dto;
+        }).toList();
     }
 
     @Override
     @Transactional
     public CandidatureResponse createCandidature(Long offreId, MultipartFile cvFile, String emailCandidat) {
-        // 1. Valider le fichier
-        validerFichierCv(cvFile);
+        // 1. Valider le fichier (service centralisé, réutilisé partout)
+        cvFileValidator.validate(cvFile);
 
         // 2. Récupérer l'utilisateur
         user_entity candidat = userRepository.findByEmail(emailCandidat)
@@ -96,74 +115,93 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
             throw new InvalidFileException("Vous avez déjà postulé à cette offre");
         }
 
-        // 5. Créer et sauvegarder le fichier CV
+        // 5. Construire un contexte textuel enrichi de l'offre pour l'IA
+        String offerContext = buildOfferContext(offre);
+
+        // 6. Appeler le service IA Flask (stateless) avec le FICHIER brut + contexte de l'offre
+        // L'IA va extraire le texte, analyser, et générer le PDF anonymisé en une seule passe.
+        AiAnalysisResponse aiResult = aiService.analyzeCv(cvFile, offerContext);
+
+        // 7. Sauvegarder le fichier CV original (local en dev, S3 en prod)
         CvFile savedCvFile = sauvegarderCvFile(cvFile);
 
-        // 6. Créer la candidature
+        // 8. Créer la candidature avec toutes les données IA
         Candidature candidature = new Candidature();
         candidature.setOffre(offre);
         candidature.setCandidat(candidat);
         candidature.setCvFile(savedCvFile);
         candidature.setDateSoumission(LocalDateTime.now());
 
-        // Calculer le score de compatibilité (temporairement, sera remplacé par l'IA)
-        Double scoreCompatibilite = calculerScoreCompatibilite(offre, savedCvFile);
-        candidature.setScoreCompatibilite(scoreCompatibilite);
+        // Score et analyse textuelle
+        candidature.setScoreCompatibilite(aiResult.getScore());
+        candidature.setScoreAnalysis(aiResult.getScoreAnalysis());
 
-        // 7. Sauvegarder
+        // Compétences et diplômes
+        if (aiResult.getCompetences() != null && !aiResult.getCompetences().isEmpty()) {
+            candidature.setCompetences(String.join(" | ", aiResult.getCompetences()));
+        }
+        if (aiResult.getDiplomes() != null && !aiResult.getDiplomes().isEmpty()) {
+            candidature.setDiplomes(String.join(" | ", aiResult.getDiplomes()));
+        }
+
+        // 9. Gérer le PDF anonymisé retourné par l'IA (en Base64)
+        String base64Pdf = aiResult.getAnonymizedPdfBase64();
+        if (base64Pdf != null && !base64Pdf.isBlank()) {
+            try {
+                byte[] anonymizedBytes = Base64.getDecoder().decode(base64Pdf);
+                // Sauvegarder le fichier anonymisé via le service de stockage existant
+                String anonymizedKey = cvFileStorageService.saveFile(
+                        anonymizedBytes, 
+                        "anon_" + savedCvFile.getOriginalFileName(), 
+                        "application/pdf"
+                );
+                savedCvFile.setAnonymizedStorageKey(anonymizedKey);
+                cvFileRepository.save(savedCvFile);
+            } catch (Exception e) {
+                System.err.println("⚠️  Échec du stockage du PDF anonymisé envoyé par l'IA : " + e.getMessage());
+            }
+        }
+
         Candidature saved = candidatureRepository.save(candidature);
 
         return candidatureMapper.toCandidateResponse(saved);
     }
 
     /**
-     * Valide le fichier CV selon les critères de sécurité
+     * Construit un contexte textuel enrichi de l'offre pour l'IA.
+     * Combine le titre, la description et les compétences requises
+     * afin de donner au LLM le meilleur contexte possible pour le matching.
+     *
+     * Exemple de sortie :
+     * "Poste : Développeur Android Senior
+     *  Description : Nous recherchons...
+     *  Compétences requises : Kotlin, Android Studio, Firebase"
      */
-    private void validerFichierCv(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new InvalidFileException("Le fichier CV est obligatoire");
+    private String buildOfferContext(Offre offre) {
+        StringBuilder sb = new StringBuilder();
+
+        if (offre.getTitre() != null && !offre.getTitre().isBlank()) {
+            sb.append("Poste : ").append(offre.getTitre()).append("\n\n");
+        }
+        if (offre.getDescription() != null && !offre.getDescription().isBlank()) {
+            sb.append("Description : ").append(offre.getDescription()).append("\n\n");
+        }
+        if (offre.getCompetencesRequises() != null && !offre.getCompetencesRequises().isBlank()) {
+            sb.append("Compétences requises : ").append(offre.getCompetencesRequises());
         }
 
-        // Vérifier la taille
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new InvalidFileException("Le fichier CV dépasse la taille maximale de 5 MB");
-        }
-
-        // Vérifier le type
-        if (!ALLOWED_FILE_TYPE.equals(file.getContentType())) {
-            throw new InvalidFileException("Seuls les fichiers PDF sont acceptés");
-        }
-
-        // Vérifier le nom de fichier
-        if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-            throw new InvalidFileException("Le nom du fichier est invalide");
-        }
+        return sb.toString().trim();
     }
 
-    /**
-     * Sauvegarde le fichier CV avec une clé de stockage sécurisée
-     */
     private CvFile sauvegarderCvFile(MultipartFile file) {
-        // 1. Sauvegarder le fichier physique via le service déié
         String storageKey = cvFileStorageService.saveFile(file);
-
-        // 2. Créer et sauvegarder les métadonnées
         CvFile cvFile = new CvFile();
         cvFile.setStorageKey(storageKey);
         cvFile.setOriginalFileName(file.getOriginalFilename());
         cvFile.setContentType(file.getContentType());
         cvFile.setSizeBytes(file.getSize());
         cvFile.setUploadedAt(LocalDateTime.now());
-
         return cvFileRepository.save(cvFile);
-    }
-
-    /**
-     * Calcule le score de compatibilité (TEMPORAIRE - sera remplacé par l'IA)
-     */
-    private Double calculerScoreCompatibilite(Offre offre, CvFile cvFile) {
-        // Score aléatoire temporaire entre 0 et 100 (à remplacer par l'IA)
-        return Math.random() * 100;
     }
 
     @Override
@@ -178,31 +216,62 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
 
     @Override
     @Transactional
-    public CandidatureResponse updateCandidatureStatus(Long candidatureId, CandidatureStatus newStatus, String emailHr) {
-        // 1. Récupérer l'utilisateur HR
+    public CandidatureHrResponse updateCandidatureStatus(Long candidatureId, CandidatureStatus newStatus, String emailHr) {
         user_entity hr = userRepository.findByEmail(emailHr)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur HR non trouve"));
 
-        // 2. Récupérer la candidature
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvee"));
 
-        // 3. Vérifier que l'HR est propriétaire de l'offre
-        if (!authorizationUtils.isOffreOwnerOrAdmin(candidature.getOffre(), hr)) {
-            throw new AccessDeniedException("Vous ne pouvez pas modifier cette candidature");
+        boolean hasApprovedAccess = demandeAccesCvRepository
+                .findByCandidatureIdAndHrId(candidatureId, hr.getId())
+                .filter(demande -> demande.getStatus() == DemandeAccesCvStatus.APPROUVEE)
+                .isPresent();
+
+        if (!hasApprovedAccess) {
+            throw new AccessDeniedException("Vous devez avoir une demande d'accès approuvée pour valider cette candidature");
         }
 
-        // 4. Valider la transition d'état
         statusValidator.validateTransition(candidature.getStatus(), newStatus);
-
-        // 5. Mettre à jour le statut
         candidature.setStatus(newStatus);
 
-        // 6. Sauvegarder et retourner
         Candidature updated = candidatureRepository.save(candidature);
-        return candidatureMapper.toCandidateResponse(updated);
+        
+        CandidatureHrResponse dto = candidatureMapper.toHrResponse(updated);
+        dto.setHasAccessToOriginalCv(true); // Since they are updating status, they must have approved access already
+        
+        demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
+                .ifPresent(demande -> dto.setDemandeAccesId(demande.getId()));
+                
+        // Retourner la vue RH (avec scoreAnalysis, compétences)
+        return dto;
+    }
+
+    /**
+     * Candidat — visualiser/télécharger son propre CV (original).
+     * Sécurité : on vérifie que la candidature appartient bien au candidat connecté.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public CvDownloadResponse getMyCv(Long candidatureId, String emailCandidat) {
+        // Récupérer la candidature
+        Candidature candidature = candidatureRepository.findById(candidatureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidature introuvable : " + candidatureId));
+
+        // Vérifier que c'est bien le candidat propriétaire
+        if (!candidature.getCandidat().getEmail().equals(emailCandidat)) {
+            throw new AccessDeniedException("Vous n'êtes pas autorisé à accéder à ce CV.");
+        }
+
+        // Récupérer le fichier CV
+        CvFile cvFile = candidature.getCvFile();
+        if (cvFile == null) {
+            throw new ResourceNotFoundException("Aucun fichier CV associé à cette candidature.");
+        }
+
+        byte[] content = cvFileStorageService.getFile(cvFile.getStorageKey());
+        String fileName = cvFile.getOriginalFileName() != null ? cvFile.getOriginalFileName() : "mon-cv.pdf";
+
+        return new CvDownloadResponse(content, fileName);
     }
 }
-
-
-

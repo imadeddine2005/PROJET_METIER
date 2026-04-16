@@ -59,15 +59,35 @@ public class DemandeAccesCvHr_Controller {
         return ResponseEntity.ok(ApiResponse.success("Mes demandes d'accès", demandes));
     }
 
-    // HR télécharge le CV (seulement si demande approuvée)
-    @GetMapping("/{demandeId}/cv")
+    /**
+     * HR voit le CV ANONYMISÉ — disponible sans approbation.
+     * Les données personnelles (nom, email, téléphone) sont caviardées.
+     * URL : GET /hr/api/demandes-acces-cv/candidature/{candidatureId}/cv-anonymise
+     */
+    @GetMapping("/candidature/{candidatureId}/cv-anonymise")
     @PreAuthorize("hasRole('HR')")
-    public ResponseEntity<byte[]> downloadCv(
+    public ResponseEntity<byte[]> downloadCvAnonymise(
+            @PathVariable Long candidatureId,
+            Authentication auth
+    ) {
+        CvDownloadResponse response = demandeService.downloadAnonymizedCv(candidatureId, auth.getName());
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"cv_anonymise.pdf\"")
+                .body(response.getContent());
+    }
+
+    /**
+     * HR voit le CV ORIGINAL — UNIQUEMENT si sa demande est APPROUVÉE par l'admin.
+     * URL : GET /hr/api/demandes-acces-cv/{demandeId}/cv-original
+     */
+    @GetMapping("/{demandeId}/cv-original")
+    @PreAuthorize("hasRole('HR')")
+    public ResponseEntity<byte[]> downloadCvOriginal(
             @PathVariable Long demandeId,
             Authentication auth
     ) {
         CvDownloadResponse response = demandeService.downloadCvForHr(demandeId, auth.getName());
-        
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + response.getFileName() + "\"")

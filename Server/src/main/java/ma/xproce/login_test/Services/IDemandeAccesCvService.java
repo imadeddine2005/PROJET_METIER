@@ -26,6 +26,9 @@ public interface IDemandeAccesCvService {
     // Admin télécharge le CV (pour consultation avant décision)
     CvDownloadResponse downloadCv(Long demandeId);
     
-    // HR télécharge le CV (seulement si demande APPROUVEE)
+    // HR télécharge le CV ORIGINAL (seulement si demande APPROUVEE par admin)
     CvDownloadResponse downloadCvForHr(Long demandeId, String emailHr);
+
+    // HR télécharge le CV ANONYMISÉ (accessible sans approbation, données masquées)
+    CvDownloadResponse downloadAnonymizedCv(Long candidatureId, String emailHr);
 }

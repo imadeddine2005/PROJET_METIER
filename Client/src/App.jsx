@@ -10,10 +10,13 @@ import CandidateLayout from "./layouts/CandidateLayout"
 import AdminDashboard from "./EspaceAdmin/pages/AdminDashboard"
 import MesOffres from "./EspaceHr/pages/MesOffres"
 import CreerOffre from "./EspaceHr/pages/CreerOffre"
+import EditerOffre from "./EspaceHr/pages/EditerOffre"
 import DemandesAcces from "./EspaceHr/pages/DemandesAcces"
 import CanddatteJobeOffers from "./EspaceCandidate/pages/CanddatteJobeOffers"
 import MesCandidatures from "./EspaceCandidate/pages/mes-candidatures"
+import OffreCandidatures from "./EspaceHr/pages/OffreCandidatures"
 import Myjob from "./EspaceCandidate/pages/Myjob"
+import ApplyToOffer from "./EspaceCandidate/pages/ApplyToOffer"
 import PublicLayout from "./layouts/PublicLayout"
 
 
@@ -39,7 +42,9 @@ function App() {
             <Route path="/hr" element={<HrLayout />}>
               <Route index element={<Navigate to="/hr/offers" replace />} />
               <Route path="offers" element={<MesOffres />} />
+              <Route path="offers/:offreId/applicants" element={<OffreCandidatures />} />
               <Route path="create-offer" element={<CreerOffre />} />
+              <Route path="edit-offer/:offreId" element={<EditerOffre />} />
               <Route path="access-requests" element={<DemandesAcces />} />
             </Route>
           </Route>
@@ -50,6 +55,7 @@ function App() {
             <Route path="/candidate" element={<CandidateLayout />}>
               <Route index element={<Navigate to="/candidate/offers" replace />} />
               <Route path="offers" element={<CanddatteJobeOffers />} />
+              <Route path="offers/:offreId/apply" element={<ApplyToOffer />} />
               <Route path="applications" element={<MesCandidatures />} />
               <Route path="my-job" element={<Myjob />} />
             </Route>

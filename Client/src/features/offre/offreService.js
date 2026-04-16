@@ -26,10 +26,17 @@ const getOffres = async () => {
   return response.data.data || response.data;
 };
 
-// Get single offer by ID (requires auth)
-const getOffreById = async (offreId) => {
+// Get single offer details for candidate
+const getOffreByIdCandidate = async (offreId) => {
   const config = getAuthConfig();
   const response = await axios.get(`${API_URL}/${offreId}`, config);
+  return response.data.data || response.data;
+};
+
+// Get single offer by ID for editing (HR)
+const getOffreById = async (offreId) => {
+  const config = getAuthConfig();
+  const response = await axios.get(`${HR_API_URL}/${offreId}`, config);
   return response.data.data || response.data;
 };
 
@@ -63,6 +70,7 @@ const deleteOffre = async (offreId) => {
 
 const offreService = {
   getOffres,
+  getOffreByIdCandidate,
   getOffreById,
   getMyOffres,
   createOffre,
