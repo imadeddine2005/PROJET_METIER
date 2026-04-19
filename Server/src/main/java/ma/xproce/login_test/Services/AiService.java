@@ -85,23 +85,24 @@ public class AiService {
 
     /**
      * Prédit le métier idéal pour une candidature (feature optionnelle).
+     * Envoie le fichier PDF à l'IA pour qu'elle gère l'extraction (avec OCR si besoin).
      *
-     * @param cvText Texte brut du CV
+     * @param file Le fichier PDF
      * @return Map avec metier_ideal, confiance, explication, toutes_categories
      */
-    public Map<String, Object> predictJob(String cvText) {
+    public Map<String, Object> predictJob(MultipartFile file) {
         try {
-            Map<String, String> body = new HashMap<>();
-            body.put("cv_text", cvText);
-
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", file.getResource());
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     aiBaseUrl + "/api/predict-job",
-                    request,
+                    requestEntity,
                     Map.class
             );
 

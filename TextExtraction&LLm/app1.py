@@ -112,33 +112,38 @@ def predict_job():
     """
     Prédit le métier idéal d'un candidat depuis son CV.
     
-    Request Body (JSON):
-    {
-        "cv_text": "texte extrait du PDF par Spring Boot..."
-    }
-    
-    Response (JSON):
-    {
-        "metier_ideal":     "Data Engineer",
-        "confiance":        85,
-        "explication":      "Profil SQL + Python solide...",
-        "toutes_categories": { "Data Engineer": 85, "Dev Backend": 60, ... }
-    }
+    Accepte maintenant un FICHIER PDF (multipart/form-data) 
+    pour appliquer l'OCR si nécessaire.
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Corps JSON manquant"}), 400
+    if 'file' not in request.files:
+        return jsonify({"error": "Fichier 'file' manquant"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Nom de fichier vide"}), 400
 
-    cv_text = data.get("cv_text", "").strip()
-    if not cv_text:
-        return jsonify({"error": "Le champ 'cv_text' est obligatoire"}), 400
-
+    temp_input = None
     try:
+        # Sauvegarde temporaire
+        suffix = os.path.splitext(file.filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            file.save(tmp.name)
+            temp_input = tmp.name
+
+        # Extraction intelligente (avec OCR natif si besoin)
+        cv_text = extract_text(temp_input)
+        
         prediction = predict_job_category_with_llm(cv_text)
         return jsonify(prediction), 200
+
     except Exception as e:
         print(f"Erreur /api/predict-job : {e}")
         return jsonify({"error": f"Erreur IA : {str(e)}"}), 500
+        
+    finally:
+        # Nettoyage
+        if temp_input and os.path.exists(temp_input):
+            os.remove(temp_input)
 
 
 # ═══════════════════════════════════════════════════════════

@@ -91,6 +91,7 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
                         dto.setHasAccessToOriginalCv(true);
                         dto.setDemandeAccesId(demande.getId());
                     }
+                    dto.setAccessRequestStatus(demande.getStatus().name());
                 });
             return dto;
         }).toList();
@@ -223,13 +224,15 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvee"));
 
-        boolean hasApprovedAccess = demandeAccesCvRepository
-                .findByCandidatureIdAndHrId(candidatureId, hr.getId())
-                .filter(demande -> demande.getStatus() == DemandeAccesCvStatus.APPROUVEE)
-                .isPresent();
+        // Règles métiers : Un RH ne peut pas Accepter ou Refuser un candidat sans avoir accès à son CV original (validé par l'Admin)
+        if (newStatus == CandidatureStatus.ACCEPTEE || newStatus == CandidatureStatus.REFUSEE) {
+            boolean hasApprovedAccess = demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
+                    .map(demande -> demande.getStatus() == DemandeAccesCvStatus.APPROUVEE)
+                    .orElse(false);
 
-        if (!hasApprovedAccess) {
-            throw new AccessDeniedException("Vous devez avoir une demande d'accès approuvée pour valider cette candidature");
+            if (!hasApprovedAccess) {
+                throw new AccessDeniedException("Accès refusé : Vous devez obtenir l'approbation de l'administrateur pour accéder au CV original avant de pouvoir accepter ou refuser ce candidat.");
+            }
         }
 
         statusValidator.validateTransition(candidature.getStatus(), newStatus);
@@ -238,10 +241,15 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         Candidature updated = candidatureRepository.save(candidature);
         
         CandidatureHrResponse dto = candidatureMapper.toHrResponse(updated);
-        dto.setHasAccessToOriginalCv(true); // Since they are updating status, they must have approved access already
         
         demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
-                .ifPresent(demande -> dto.setDemandeAccesId(demande.getId()));
+                .ifPresent(demande -> {
+                    if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                        dto.setHasAccessToOriginalCv(true);
+                        dto.setDemandeAccesId(demande.getId());
+                    }
+                    dto.setAccessRequestStatus(demande.getStatus().name());
+                });
                 
         // Retourner la vue RH (avec scoreAnalysis, compétences)
         return dto;

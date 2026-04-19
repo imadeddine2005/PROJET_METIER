@@ -70,16 +70,9 @@ public class CvToolsCandidate_Controller {
         // 1. Valider le fichier (service centralisé, réutilisé partout)
         cvFileValidator.validate(cvFile);
 
-        // 2. Extraire le texte du PDF (PDFBox — côté Spring Boot)
-        String cvText;
-        try {
-            cvText = pdfExtractor.extractText(cvFile);
-        } catch (IOException e) {
-            throw new InvalidFileException("Impossible de lire le PDF : " + e.getMessage());
-        }
-
-        // 3. Appeler Flask /api/predict-job (stateless, zéro DB)
-        Map<String, Object> prediction = aiService.predictJob(cvText);
+        // 2. Appeler Flask /api/predict-job en envoyant le fichier entier
+        // Le serveur Flask (Python) s'occupera de l'extraction avec OCR si nécessaire.
+        Map<String, Object> prediction = aiService.predictJob(cvFile);
 
         // 4. Si l'IA a retourné une erreur, la propager proprement
         if (prediction.containsKey("error")) {

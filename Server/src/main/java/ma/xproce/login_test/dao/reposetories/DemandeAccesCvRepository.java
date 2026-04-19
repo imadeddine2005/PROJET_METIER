@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface DemandeAccesCvRepository extends JpaRepository<DemandeAccesCv, Long> {
     List<DemandeAccesCv> findByHrId(Long hrId);
     List<DemandeAccesCv> findByStatus(DemandeAccesCvStatus status);
+    List<DemandeAccesCv> findByStatusNot(DemandeAccesCvStatus status);
     Optional<DemandeAccesCv> findByCandidatureIdAndHrId(Long candidatureId, Long hrId);
 }
 

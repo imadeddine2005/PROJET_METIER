@@ -21,7 +21,14 @@ public class DemandeAccesCvAdminResponse {
     // Info Candidat (sans anonymisation pour admin)
     private String candidatEmail;
     private String candidatName;
+    private String candidatRef;
     private Long candidatureId;
+    
+    // AI Analysis Info
+    private Double scoreCompatibilite;
+    private String scoreAnalysis;
+    private String competences;
+    private String diplomes;
     
     // Info Offre
     private String offreTitre;

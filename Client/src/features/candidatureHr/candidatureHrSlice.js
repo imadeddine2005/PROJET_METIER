@@ -3,6 +3,8 @@ import candidatureHrService from "./candidatureHrService";
 
 const initialState = {
   applicants: [],
+  accessRequests: [],
+  isLoadingRequests: false,
   isLoading: false,
   isError: false,
   isSuccess: false,
@@ -59,7 +61,21 @@ export const requestCvAccess = createAsyncThunk(
   }
 );
 
-
+// Fetch my access requests
+export const fetchMyAccessRequests = createAsyncThunk(
+  "candidatureHr/fetchMyAccessRequests",
+  async (_, thunkAPI) => {
+    try {
+      return await candidatureHrService.getMyAccessRequests();
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
 export const candidatureHrSlice = createSlice({
   name: "candidatureHr",
   initialState,
@@ -106,8 +122,7 @@ export const candidatureHrSlice = createSlice({
       })
       .addCase(updateCandidatureStatus.rejected, (state, action) => {
         state.isUpdatingStatus = false;
-        state.isError = true;
-        state.message = action.payload;
+        // Géré localement via .unwrap().catch() dans le composant pour éviter le double toast
       })
       // Request Access
       .addCase(requestCvAccess.pending, (state) => {
@@ -119,6 +134,19 @@ export const candidatureHrSlice = createSlice({
       })
       .addCase(requestCvAccess.rejected, (state, action) => {
         state.isRequestingAccess = false;
+        // Géré localement via .unwrap().catch() dans le composant
+      })
+      // Fetch My Access Requests
+      .addCase(fetchMyAccessRequests.pending, (state) => {
+        state.isLoadingRequests = true;
+      })
+      .addCase(fetchMyAccessRequests.fulfilled, (state, action) => {
+        state.isLoadingRequests = false;
+        state.isSuccess = true;
+        state.accessRequests = action.payload?.data || action.payload || [];
+      })
+      .addCase(fetchMyAccessRequests.rejected, (state, action) => {
+        state.isLoadingRequests = false;
         state.isError = true;
         state.message = action.payload;
       });

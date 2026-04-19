@@ -8,6 +8,7 @@ import AdminLayout from "./layouts/AdminLayout"
 import HrLayout from "./layouts/HrLayout"
 import CandidateLayout from "./layouts/CandidateLayout"
 import AdminDashboard from "./EspaceAdmin/pages/AdminDashboard"
+import AdminHistory from "./EspaceAdmin/pages/AdminHistory"
 import MesOffres from "./EspaceHr/pages/MesOffres"
 import CreerOffre from "./EspaceHr/pages/CreerOffre"
 import EditerOffre from "./EspaceHr/pages/EditerOffre"
@@ -35,6 +36,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["ROLE_ADMIN"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="history" element={<AdminHistory />} />
             </Route>
           </Route>
 

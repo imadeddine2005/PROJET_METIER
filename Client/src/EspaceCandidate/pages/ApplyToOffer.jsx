@@ -45,7 +45,7 @@ function ApplyToOffer() {
   // Écoute des erreurs
   useEffect(() => {
     if (isError) {
-      toast.error(message || "Erreur lors de l'envoi de la candidature");
+      toast.error(message || "Erreur lors de l'envoi de la candidature", { toastId: 'apply-err' });
       dispatch(resetCandidatureState());
     }
   }, [isError, message, dispatch]);
@@ -54,11 +54,11 @@ function ApplyToOffer() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.type !== "application/pdf") {
-        toast.error("Veuillez sélectionner un fichier PDF.");
+        toast.error("Veuillez sélectionner un fichier PDF.", { toastId: 'apply-pdf-err' });
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Le fichier ne doit pas dépasser 5 MB.");
+        toast.error("Le fichier ne doit pas dépasser 5 MB.", { toastId: 'apply-size-err' });
         return;
       }
       setSelectedFile(file);
@@ -70,7 +70,7 @@ function ApplyToOffer() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.type !== "application/pdf") {
-        toast.error("Veuillez sélectionner un fichier PDF.");
+        toast.error("Veuillez sélectionner un fichier PDF.", { toastId: 'req-pdf-err' });
         return;
       }
       setSelectedFile(file);
@@ -96,7 +96,7 @@ function ApplyToOffer() {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      toast.error("Erreur lors de l'ouverture du CV");
+      toast.error("Erreur lors de l'ouverture du CV", { toastId: 'view-cv-err' });
     }
   };
 

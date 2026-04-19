@@ -31,6 +31,14 @@ public class DemandeAccesCvAdmin_Controller {
         return ResponseEntity.ok(ApiResponse.success("Demandes en attente", demandes));
     }
 
+    // Admin voit l'historique (demandes APPROUVEE ou REFUSEE)
+    @GetMapping("/historique")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<DemandeAccesCvAdminResponse>>> historique() {
+        List<DemandeAccesCvAdminResponse> demandes = demandeService.historiqueDemandes();
+        return ResponseEntity.ok(ApiResponse.success("Historique des demandes", demandes));
+    }
+
     // Admin approuve avec raison
     @PutMapping("/{demandeId}/approve")
     @PreAuthorize("hasRole('ADMIN')")

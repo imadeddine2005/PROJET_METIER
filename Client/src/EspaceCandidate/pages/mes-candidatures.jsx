@@ -45,7 +45,7 @@ function MesCandidatures() {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message || "Erreur lors du chargement des candidatures")
+      toast.error(message || "Erreur lors du chargement des candidatures", { toastId: 'mes-cand-err' })
       dispatch(resetCandidatureState())
     }
   }, [isError, message, dispatch])
@@ -56,7 +56,7 @@ function MesCandidatures() {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      toast.error("Erreur lors de l'ouverture du CV");
+      toast.error("Erreur lors de l'ouverture du CV", { toastId: 'open-cv-err' });
     }
   };
 
