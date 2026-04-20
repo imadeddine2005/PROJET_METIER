@@ -3,5 +3,6 @@ smartrecruit-key.pem
 /Server/Dockerfile
 /'TextExtraction&LLm'/Dockerfile
 /Client/Dockerfile
-Docker-compose.prod.yml
+docker-compose.prod.yml
 /Server/src/main/resources/application.properties
+docker-compose.frontend.yml

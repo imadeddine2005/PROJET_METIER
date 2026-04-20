@@ -26,7 +26,8 @@ public class test_controleur {
 
     @GetMapping("/admin")
     public String admin() {
-        return "admin";}
+        return "admin";
+    }
 
     /**
      * Health check endpoint — public (déclaré dans SecurityConfig : /health/**)
