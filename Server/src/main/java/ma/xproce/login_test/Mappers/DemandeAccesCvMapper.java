@@ -18,6 +18,7 @@ public class DemandeAccesCvMapper {
         response.setDateDemande(demande.getCreatedAt());
         response.setDateDecision(demande.getDecidedAt());
         response.setMotif(demande.getMotif());
+        response.setDecisionNote(demande.getDecisionNote());
         return response;
     }
     
@@ -33,7 +34,13 @@ public class DemandeAccesCvMapper {
         // Info Candidat
         response.setCandidatEmail(demande.getCandidature().getCandidat().getEmail());
         response.setCandidatName(demande.getCandidature().getCandidat().getName());
+        response.setCandidatRef("C-" + demande.getCandidature().getCandidat().getId());
         response.setCandidatureId(demande.getCandidature().getId());
+        
+        response.setScoreCompatibilite(demande.getCandidature().getScoreCompatibilite());
+        response.setScoreAnalysis(demande.getCandidature().getScoreAnalysis());
+        response.setCompetences(demande.getCandidature().getCompetences());
+        response.setDiplomes(demande.getCandidature().getDiplomes());
         
         // Info Offre
         response.setOffreTitre(demande.getCandidature().getOffre().getTitre());

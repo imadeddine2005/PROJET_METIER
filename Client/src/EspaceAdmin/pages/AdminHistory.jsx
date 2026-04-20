@@ -1,23 +1,23 @@
 import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { fetchPendingRequests, resetAdminState, openAdminModal, openDetailsModal } from "../../features/admin/adminSlice"
+import { fetchHistoryRequests, resetAdminState, openDetailsModal } from "../../features/admin/adminSlice"
 import adminService from "../../features/admin/adminService"
 import { toast } from "react-toastify"
 import Spinner from "../../components/Spinner"
-import { FaFilePdf, FaCheck, FaTimes, FaCalendarAlt, FaShieldAlt } from "react-icons/fa"
+import { FaFilePdf, FaCalendarAlt, FaHistory, FaShieldAlt } from "react-icons/fa"
 
-function AdminDashboard() {
+function AdminHistory() {
   const dispatch = useDispatch()
-  const { pendingRequests, isLoading, isActionLoading, isError, message } = useSelector((state) => state.admin)
-
+  const { historyRequests, isLoading, isError, message } = useSelector((state) => state.admin)
+  
   useEffect(() => {
-    dispatch(fetchPendingRequests())
+    dispatch(fetchHistoryRequests())
     return () => { dispatch(resetAdminState()) }
   }, [dispatch])
 
   useEffect(() => {
     if (isError) {
-      toast.error(message, { toastId: 'admin-error' })
+      toast.error(message, { toastId: 'admin-history-error' })
       dispatch(resetAdminState())
     }
   }, [isError, message, dispatch])
@@ -32,26 +32,18 @@ function AdminDashboard() {
     }
   };
 
-  const handleActionClick = (demande, actionType) => {
-    dispatch(openAdminModal({
-      demandeId: demande.id,
-      actionType,
-      candidatRef: demande.candidatRef
-    }))
-  }
-
   const renderCard = (demande) => (
     <div 
       key={demande.id} 
       className="group bg-white/90 backdrop-blur-xl rounded-[24px] border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
     >
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500" />
+      <div className={`absolute top-0 left-0 w-full h-1 ${demande.status === 'APPROUVEE' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`} />
 
       {/* Card Header */}
       <div className="p-6 pb-4 flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ring-4 ring-white shadow-sm bg-indigo-50 text-indigo-600">
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ring-4 ring-white shadow-sm ${demande.status === 'APPROUVEE' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
               {demande.hrEmail?.substring(0, 2).toUpperCase() || "HR"}
             </div>
             <div>
@@ -65,6 +57,9 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
+        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${demande.status === 'APPROUVEE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+          {demande.status}
+        </span>
       </div>
 
       <div className="mx-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-60"></div>
@@ -82,6 +77,13 @@ function AdminDashboard() {
             {demande.motif}
           </p>
         </div>
+
+        {demande.decisionNote && (
+          <div className={`mt-4 p-3 rounded-xl border ${demande.status === 'APPROUVEE' ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'}`}>
+            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Votre note:</h4>
+            <p className={`text-xs ${demande.status === 'APPROUVEE' ? 'text-emerald-800' : 'text-red-800'}`}>{demande.decisionNote}</p>
+          </div>
+        )}
       </div>
 
       {/* Actions Footer */}
@@ -97,60 +99,42 @@ function AdminDashboard() {
           onClick={() => openAdminCv(demande.id)}
           className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white text-indigo-700 hover:text-indigo-600 border border-indigo-100 hover:bg-indigo-50 transition-all font-bold text-xs active:scale-95 shadow-sm"
         >
-          <FaFilePdf /> Lire le CV (Sécurisé)
+          <FaFilePdf /> Lire le CV Archivé (Sécurisé)
         </button>
-
-        <div className="grid grid-cols-2 gap-2 mt-1">
-          <button 
-            onClick={() => handleActionClick(demande, 'REJETER')}
-            disabled={isActionLoading}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white text-red-600 hover:bg-red-50 hover:border-red-200 border border-slate-200 transition-all font-bold text-xs active:scale-95 disabled:opacity-50"
-          >
-            <FaTimes /> Refuser
-          </button>
-          <button 
-            onClick={() => handleActionClick(demande, 'APPROVER')}
-            disabled={isActionLoading}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all font-bold text-xs active:scale-95 disabled:opacity-50"
-          >
-            <FaCheck /> Approuver
-          </button>
-        </div>
       </div>
     </div>
   )
 
-  if (isLoading && (!pendingRequests || pendingRequests.length === 0)) return <Spinner />
+  if (isLoading && (!historyRequests || historyRequests.length === 0)) return <Spinner />
 
   return (
     <div className="w-full space-y-8 animate-fade-in pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight flex items-center gap-3">
-            <FaShieldAlt className="text-indigo-500" />
-            Contrôle d'Accès CV
-          </h1>
-          <p className="text-slate-600 font-medium">
-            Gérez les requêtes des recruteurs pour débloquer les données personnelles des candidats.
-          </p>
-        </div>
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight flex items-center gap-3">
+          <div className="h-12 w-12 rounded-2xl bg-slate-200 flex items-center justify-center">
+            <FaHistory className="text-slate-500" />
+          </div>
+          Historique des Décisions
+        </h1>
+        <p className="text-slate-600 font-medium ml-1">
+          Visualisez l'ensemble des requêtes d'accès au CV originales que vous avez approuvées ou refusées.
+        </p>
       </div>
 
       {/* Content */}
-      {pendingRequests && pendingRequests.length > 0 ? (
+      {historyRequests && historyRequests.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {pendingRequests.map(demande => renderCard(demande))}
+          {historyRequests.map(renderCard)}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 bg-white/50 border border-slate-200 border-dashed rounded-[2rem]">
           <div className="h-16 w-16 mb-4 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
             <FaShieldAlt size={28} />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">
-            Aucune demande en attente
-          </h3>
+          <h3 className="text-lg font-bold text-slate-800">Aucun historique</h3>
           <p className="text-slate-500 mt-2 max-w-sm text-center font-medium">
-            Vous êtes à jour ! Aucun recruteur n'a demandé l'accès à un CV pour le moment.
+            L'historique de vos décisions est vide. Acceptez ou refusez une requête pour la voir apparaître ici.
           </p>
         </div>
       )}
@@ -158,4 +142,4 @@ function AdminDashboard() {
   )
 }
 
-export default AdminDashboard
+export default AdminHistory

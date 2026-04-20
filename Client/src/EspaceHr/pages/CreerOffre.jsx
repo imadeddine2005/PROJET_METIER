@@ -31,7 +31,7 @@ function CreerOffre() {
   useEffect(() => {
     if (isError) {
       setIsCreating(false)
-      toast.error(message || "Erreur lors de la création de l'offre")
+      toast.error(message || "Erreur lors de la création de l'offre", { toastId: 'create-offre-err' })
       dispatch(reset())
     }
   }, [isError, message, dispatch])
@@ -40,7 +40,7 @@ function CreerOffre() {
   useEffect(() => {
     if (isSuccess && isCreating) {
       setIsCreating(false)
-      toast.success("Offre créée avec succès!")
+      toast.success("Offre créée avec succès!", { toastId: 'create-offre-succ' })
       dispatch(reset())
       setTimeout(() => {
         navigate("/hr/offers")
@@ -95,7 +95,7 @@ function CreerOffre() {
     e.preventDefault()
 
     if (!validateForm()) {
-      toast.error("Veuillez corriger les erreurs du formulaire")
+      toast.error("Veuillez corriger les erreurs du formulaire", { toastId: 'create-form-err' })
       return
     }
 

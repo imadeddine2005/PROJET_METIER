@@ -19,4 +19,5 @@ public class DemandeAccesCvResponse {
     private LocalDateTime dateDemande;
     private LocalDateTime dateDecision;
     private String motif;
+    private String decisionNote;
 }

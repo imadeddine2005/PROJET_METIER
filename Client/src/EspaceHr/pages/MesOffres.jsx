@@ -27,7 +27,7 @@ function MesOffres() {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message || "Erreur lors du chargement des offres")
+      toast.error(message || "Erreur lors du chargement des offres", { toastId: 'mes-offres-err' })
       dispatch(reset())
     }
   }, [isError, message, dispatch])
@@ -47,12 +47,12 @@ function MesOffres() {
     dispatch(deleteOffre(deleteModal.offreId))
       .unwrap()
       .then(() => {
-        toast.success("Offre supprimée avec succès")
+        toast.success("Offre supprimée avec succès", { toastId: 'del-offre-succ' })
         setDeleteModal({ isOpen: false, offreId: null, offreName: "", isDeleting: false })
         dispatch(reset())
       })
       .catch((error) => {
-        toast.error(error || "Erreur lors de la suppression")
+        toast.error(error || "Erreur lors de la suppression", { toastId: 'del-offre-err' })
         setDeleteModal((prev) => ({ ...prev, isDeleting: false }))
       })
   }
@@ -95,98 +95,61 @@ function MesOffres() {
       </div>
 
       {/* Offres Table/Grid */}
+      {/* Offres Grid */}
       {offres && offres.length > 0 ? (
-        <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white/60 backdrop-blur-md shadow-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-surface-200 bg-surface-50/50">
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-surface-500">
-                  Titre
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-surface-500">
-                  Description
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-surface-500">
-                  Date
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-surface-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {offres.map((offre) => (
-                <tr
-                  key={offre.id}
-                  className="border-b border-surface-100 transition hover:bg-surface-50/80"
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {offres.map((offre) => (
+            <div key={offre.id} className="group relative bg-white/80 backdrop-blur-xl border border-surface-200 hover:border-brand-200 rounded-[24px] shadow-sm hover:shadow-xl hover:shadow-brand-500/10 transition-all duration-300 flex flex-col overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-400 to-indigo-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+              
+              <div className="p-6 pb-4 flex-1">
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 border border-brand-100/50 text-brand-600 group-hover:scale-110 transition-transform">
+                    <FaBriefcase className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-surface-500 bg-surface-100 px-2.5 py-1.5 rounded-lg border border-surface-200/50">
+                    <FaCalendarAlt className="text-surface-400" />
+                    {offre.dateCreation ? new Date(offre.dateCreation).toLocaleDateString("fr-FR") : "-"}
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-bold text-surface-900 leading-tight mb-2 group-hover:text-brand-600 transition-colors">
+                  {offre.titre}
+                </h3>
+                
+                <p className="text-sm text-surface-600 line-clamp-3 leading-relaxed">
+                  {offre.description}
+                </p>
+              </div>
+
+              <div className="p-4 mx-2 mb-2 bg-surface-50/50 border border-surface-100/50 rounded-2xl grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleViewApplicants(offre.id)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl bg-brand-50/80 text-brand-600 hover:bg-brand-100/80 hover:text-brand-800 transition"
+                  title="Voir les candidatures"
                 >
-                  {/* Title */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 border border-brand-100">
-                        <FaBriefcase className="h-5 w-5 text-brand-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-surface-900 line-clamp-2">{offre.titre}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Description */}
-                  <td className="px-6 py-5">
-                    <p className="line-clamp-2 text-sm text-surface-600 max-w-sm">
-                      {offre.description}
-                    </p>
-                  </td>
-
-                  {/* Date */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-surface-500">
-                      <FaCalendarAlt className="h-4 w-4 text-surface-400" />
-                      {offre.dateCreation
-                        ? new Date(offre.dateCreation).toLocaleDateString("fr-FR")
-                        : "-"}
-                    </div>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-5">
-                    <div className="flex justify-center gap-2">
-                      {/* View Applicants */}
-                      <button
-                        onClick={() => handleViewApplicants(offre.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2 text-xs font-semibold text-surface-700 transition hover:bg-brand-50 hover:text-brand-700 active:scale-95"
-                        title="Voir les candidatures"
-                      >
-                        <FaUsers className="h-3.5 w-3.5" />
-                        Candidatures
-                      </button>
-
-                      {/* Edit */}
-                      <button
-                        onClick={() => handleEdit(offre.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2 text-xs font-semibold text-surface-700 transition hover:bg-yellow-50 hover:text-yellow-700 active:scale-95"
-                        title="Modifier l'offre"
-                      >
-                        <FaEdit className="h-3.5 w-3.5" />
-                        Modifier
-                      </button>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => handleDelete(offre.id, offre.titre)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 active:scale-95"
-                        title="Supprimer l'offre"
-                      >
-                        <FaTrash className="h-3.5 w-3.5" />
-                        Supprimer
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  <FaUsers className="h-4 w-4" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Candidats</span>
+                </button>
+                <button
+                  onClick={() => handleEdit(offre.id)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl bg-yellow-50/80 text-yellow-600 hover:bg-yellow-100/80 hover:text-yellow-800 transition"
+                  title="Modifier l'offre"
+                >
+                  <FaEdit className="h-4 w-4" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Modifier</span>
+                </button>
+                <button
+                  onClick={() => handleDelete(offre.id, offre.titre)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-50/80 text-red-600 hover:bg-red-100/80 hover:text-red-800 transition"
+                  title="Supprimer l'offre"
+                >
+                  <FaTrash className="h-4 w-4" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Supprimer</span>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-surface-200 border-dashed bg-white/60 p-16 text-center shadow-sm">

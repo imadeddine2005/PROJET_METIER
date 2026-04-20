@@ -24,11 +24,11 @@ function Register() {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message);
+      toast.error(message, { toastId: 'reg-err' });
     }
     if (isSuccess || user) {
       navigate("/login");
-      toast.success("Inscription réussie, vous pouvez vous connecter");
+      toast.success("Inscription réussie, vous pouvez vous connecter", { toastId: 'reg-succ' });
     }
     dispatch(reset());
   }, [user, isError, isSuccess, message, navigate, dispatch]);

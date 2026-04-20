@@ -37,6 +37,13 @@ const requestCvAccess = async (candidatureId, motif) => {
   return response.data;
 };
 
+// Obtenir toutes les demandes d'accès d'un recruteur
+const getMyAccessRequests = async () => {
+  const config = getAuthConfig();
+  const response = await axios.get(DEMANDE_API_URL, config);
+  return response.data;
+};
+
 // Obtenir le PDF du CV Anonymisé
 const getAnonymizedCvPdf = async (candidatureId) => {
     const config = getAuthConfig();
@@ -57,6 +64,7 @@ const candidatureHrService = {
   getCandidaturesForOffer,
   updateCandidatureStatus,
   requestCvAccess,
+  getMyAccessRequests,
   getAnonymizedCvPdf,
   getOriginalCvPdf
 };

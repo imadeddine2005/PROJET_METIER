@@ -1,25 +1,17 @@
-import {
-  FaBriefcase,
-  FaFileAlt,
-  FaPlusCircle,
-  FaSignOutAlt,
-  FaUserCircle,
-} from "react-icons/fa"
+import { FaShieldAlt, FaTasks, FaSignOutAlt, FaHistory } from "react-icons/fa"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { logout, reset } from "../../features/auth/authSlice"
 
 const menuItems = [
-  { label: "Mes offres", to: "/hr/offers", icon: FaBriefcase },
-  { label: "Créer une Offre", to: "/hr/create-offer", icon: FaPlusCircle },
-  { label: "Demandes Accès", to: "/hr/access-requests", icon: FaFileAlt },
+  { label: "Gestion des Accès", to: "/admin", icon: FaTasks },
+  { label: "Historique", to: "/admin/history", icon: FaHistory },
 ]
 
-function HrSidebar({ isExpanded }) {
+function AdminSidebar({ isExpanded }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { user } = useSelector((state) => state.auth)
-  const userName = user?.name || "RH"
 
   const handleLogout = () => {
     dispatch(logout())
@@ -30,19 +22,19 @@ function HrSidebar({ isExpanded }) {
   return (
     <aside className={`h-full w-full bg-slate-900 border-r border-slate-800 shadow-2xl transition-all duration-300 relative overflow-hidden font-sans flex flex-col`}>
       {/* Decorative Gradients */}
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-brand-500/20 to-transparent pointer-events-none"></div>
-      <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-500/10 blur-[80px] pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-indigo-500/20 to-transparent pointer-events-none"></div>
+      <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none"></div>
 
       {/* Logo Section */}
       <div className="flex items-center px-5 py-8 relative z-10 shrink-0">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-xl shadow-brand-500/20 border border-white/10 overflow-hidden relative group">
-          <img src="/logo.png" alt="SmartRecruit" className="h-full w-full object-cover group-hover:scale-110 transition-transform" />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/20 border border-white/10 overflow-hidden relative group">
+          <FaShieldAlt className="text-white text-xl group-hover:scale-110 transition-transform" />
         </div>
         <div className={`ml-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden will-change-[max-width,opacity] ${isExpanded ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'}`}>
           <h2 className="whitespace-nowrap text-xl font-display font-bold text-white tracking-tight">
-            Smart<span className="text-brand-400">Recruit</span>
+            Smart<span className="text-indigo-400">Recruit</span>
           </h2>
-          <p className="text-[10px] font-bold tracking-widest text-brand-300 uppercase">Espace Recruteur</p>
+          <p className="text-[10px] font-bold tracking-widest text-indigo-300 uppercase">Espace System</p>
         </div>
       </div>
 
@@ -52,10 +44,11 @@ function HrSidebar({ isExpanded }) {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.to === '/admin'}
             className={({ isActive }) =>
               `flex items-center h-12 rounded-xl transition-all duration-300 group outline-none relative overflow-hidden ${
                 isActive
-                  ? "text-white bg-brand-500/15 border border-brand-500/30"
+                  ? "text-white bg-indigo-500/15 border border-indigo-500/30"
                   : "text-slate-400 border border-transparent hover:text-white hover:bg-white/5"
               }`
             }
@@ -63,9 +56,9 @@ function HrSidebar({ isExpanded }) {
           >
             {({ isActive }) => (
               <>
-                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-brand-400 transition-transform duration-300 origin-left ${isActive ? 'scale-x-100' : 'scale-x-0'}`}></div>
+                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-indigo-400 transition-transform duration-300 origin-left ${isActive ? 'scale-x-100' : 'scale-x-0'}`}></div>
                 <div className="w-12 h-full flex items-center justify-center shrink-0">
-                  <item.icon className={`h-5 w-5 transition-colors duration-300 ${isActive ? 'text-brand-400' : 'text-slate-400 group-hover:text-brand-300'}`} />
+                  <item.icon className={`h-5 w-5 transition-colors duration-300 ${isActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-indigo-300'}`} />
                 </div>
                 <span className={`font-semibold text-sm whitespace-nowrap transition-all duration-300 ${isExpanded ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>
                   {item.label}
@@ -76,19 +69,16 @@ function HrSidebar({ isExpanded }) {
         ))}
       </nav>
 
-      {/* User Profile & Logout */}
+      {/* Admin Profile & Logout */}
       <div className="p-4 relative z-10 shrink-0">
         <div className={`rounded-2xl transition-all duration-300 ${isExpanded ? 'bg-slate-800/50 p-3 border border-slate-700/50' : 'bg-transparent p-0 border-transparent'}`}>
           <div className="flex items-center">
             <div className={`h-10 w-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center font-bold text-white border border-slate-600 transition-all ${isExpanded ? '' : 'mx-auto'}`}>
-              <FaUserCircle className="h-6 w-6 text-slate-300" />
+              AD
             </div>
             <div className={`ml-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-w-[150px] opacity-100' : 'max-w-0 opacity-0'}`}>
-              <p className="truncate text-sm font-bold text-white">{userName}</p>
-              <div className="flex items-center gap-1.5 focus:outline-none">
-                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                 <p className="whitespace-nowrap text-[10px] text-slate-400 font-bold uppercase tracking-wider">En Ligne</p>
-               </div>
+              <p className="truncate text-sm font-bold text-white">Administrateur</p>
+              <p className="truncate text-[10px] text-slate-400 font-medium">{user?.email}</p>
             </div>
           </div>
           
@@ -110,4 +100,4 @@ function HrSidebar({ isExpanded }) {
   )
 }
 
-export default HrSidebar
+export default AdminSidebar

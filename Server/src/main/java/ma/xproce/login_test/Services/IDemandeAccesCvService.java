@@ -16,6 +16,9 @@ public interface IDemandeAccesCvService {
     
     // Admin voit demandes EN_ATTENTE (vue complète)
     List<DemandeAccesCvAdminResponse> demandesEnAttente();
+
+    // Admin voit historique des demandes traitées (APPROUVEE, REFUSEE)
+    List<DemandeAccesCvAdminResponse> historiqueDemandes();
     
     // Admin approuve avec raison (retourne vue complète)
     DemandeAccesCvAdminResponse approveDemande(Long demandeId, String emailAdmin, String decisionNote);

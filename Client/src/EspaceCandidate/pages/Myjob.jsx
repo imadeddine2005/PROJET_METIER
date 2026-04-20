@@ -13,7 +13,7 @@ function Myjob() {
     if (file && file.type === "application/pdf") {
       setSelectedFile(file)
     } else {
-      toast.error("Veuillez sélectionner un fichier PDF valide.")
+      toast.error("Veuillez sélectionner un fichier PDF valide.", { toastId: 'invalid-pdf' })
     }
   }
 
@@ -23,7 +23,7 @@ function Myjob() {
     if (file && file.type === "application/pdf") {
       setSelectedFile(file)
     } else {
-      toast.error("Veuillez déposer un fichier PDF valide.")
+      toast.error("Veuillez déposer un fichier PDF valide.", { toastId: 'invalid-pdff' })
     }
   }
 
@@ -39,13 +39,13 @@ function Myjob() {
       const response = await cvToolsService.predictJob(selectedFile)
       if (response.success) {
         setPrediction(response.data)
-        toast.success("Analyse terminée !")
+        toast.success("Analyse terminée !", { toastId: 'analyse-succ' })
       } else {
-        toast.error(response.message || "L'IA n'a pas pu identifier de métier.")
+        toast.error(response.message || "L'IA n'a pas pu identifier de métier.", { toastId: 'analyse-err' })
       }
     } catch (error) {
       console.error("Prediction error:", error)
-      toast.error("Une erreur est survenue lors de l'analyse.")
+      toast.error("Une erreur est survenue lors de l'analyse.", { toastId: 'analyse-server-err' })
     } finally {
       setIsProcessing(false)
     }
@@ -69,7 +69,7 @@ function Myjob() {
           <h1 className="text-2xl md:text-3xl font-display font-bold text-surface-900 tracking-tight">
             Votre <span className="text-brand-600">Métier Idéal ?</span>
           </h1>
-          <p className="text-surface-500 max-w-lg mx-auto text-sm leading-relaxed">
+          <p className="text-surface-600 font-medium max-w-lg mx-auto text-sm leading-relaxed">
             Analyse prédictive de vos compétences en quelques secondes.
           </p>
         </div>
@@ -116,7 +116,7 @@ function Myjob() {
                 <p className="text-sm font-bold text-surface-800">
                   {selectedFile ? selectedFile.name : "Déposez votre CV ici"}
                 </p>
-                <p className="text-[10px] text-surface-500 mt-0.5">
+                <p className="text-[10px] text-surface-600 font-bold mt-0.5">
                   {selectedFile ? "Prêt pour l'analyse" : "Format PDF uniquement"}
                 </p>
               </div>
@@ -150,7 +150,7 @@ function Myjob() {
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-surface-800">Analyse IA en cours...</h3>
-            <p className="text-xs text-surface-500 italic">Extraction des compétences et profilage...</p>
+            <p className="text-xs text-surface-600 font-medium italic">Extraction des compétences et profilage...</p>
           </div>
           <div className="max-w-xs mx-auto h-1.5 bg-surface-100 rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 animate-shimmer" style={{ width: '100%' }} />
@@ -190,7 +190,7 @@ function Myjob() {
 
             {/* Confidence Card (Takes 1/4) */}
             <div className="rounded-2xl border border-surface-200 bg-white p-3 shadow-sm flex flex-col items-center justify-center text-center space-y-2">
-              <p className="text-[9px] font-bold text-surface-400 uppercase tracking-widest">Confiance IA</p>
+              <p className="text-[9px] font-bold text-surface-600 uppercase tracking-widest">Confiance IA</p>
               <div className="relative flex items-center justify-center">
                  <svg className="h-20 w-20 transform -rotate-90">
                   <circle className="text-surface-100" strokeWidth="5" stroke="currentColor" fill="transparent" r="37" cx="40" cy="40" />
@@ -204,7 +204,7 @@ function Myjob() {
             <div className="rounded-2xl border border-surface-200 bg-white p-3 shadow-sm space-y-2 flex flex-col justify-center">
               <div className="flex items-center gap-2">
                 <FaChartBar className="h-3 w-3 text-brand-500" />
-                <h4 className="text-[9px] font-bold text-surface-400 uppercase tracking-wider">Top Alternatives</h4>
+                <h4 className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Top Alternatives</h4>
               </div>
               <div className="space-y-2">
                 {prediction.toutes_categories && Object.entries(prediction.toutes_categories)
@@ -215,7 +215,7 @@ function Myjob() {
                   <div key={idx} className="space-y-0.5">
                     <div className="flex justify-between text-[10px]">
                       <span className="font-semibold text-surface-700 truncate pr-2">{name}</span>
-                      <span className="text-surface-400 font-medium">{score}%</span>
+                      <span className="text-surface-600 font-bold">{score}%</span>
                     </div>
                     <div className="h-1 w-full bg-surface-100 rounded-full overflow-hidden">
                       <div className="h-full bg-surface-400 rounded-full" style={{ width: `${score}%` }} />
@@ -235,7 +235,7 @@ function Myjob() {
                 </div>
                 <h3 className="text-sm font-bold text-surface-900">Analyse de l'IA</h3>
               </div>
-              <p className="text-surface-700 leading-relaxed text-[13px] italic">
+              <p className="text-surface-800 font-medium leading-relaxed text-[13px] italic">
                 "{prediction.explication}"
               </p>
             </div>
@@ -263,7 +263,7 @@ function Myjob() {
       {!isProcessing && (
         <div className="max-w-md mx-auto flex items-center gap-2 p-2 rounded-xl border border-surface-100 bg-surface-50/50">
           <FaExclamationTriangle className="h-3 w-3 text-surface-400 shrink-0" />
-          <p className="text-[10px] text-surface-400 leading-tight">
+          <p className="text-[10px] text-surface-600 font-medium leading-tight">
             <strong>Confidentialité :</strong> Vos données sont traitées de manière éphémère et ne sont pas sauvegardées.
           </p>
         </div>

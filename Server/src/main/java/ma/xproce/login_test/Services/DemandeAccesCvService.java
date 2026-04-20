@@ -95,6 +95,13 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<DemandeAccesCvAdminResponse> historiqueDemandes() {
+        List<DemandeAccesCv> demandes = demandeRepository.findByStatusNot(DemandeAccesCvStatus.EN_ATTENTE);
+        return demandes.stream().map(mapper::toAdminResponse).toList();
+    }
+
+    @Override
     @Transactional
     public DemandeAccesCvAdminResponse approveDemande(Long demandeId, String emailAdmin, String decisionNote) {
         user_entity admin = userRepository.findByEmail(emailAdmin)

@@ -52,8 +52,13 @@ function CandidateHeader() {
       }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <div className="text-2xl font-display font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-indigo-800 cursor-pointer" onClick={() => navigate("/candidate")}>
-          SmartRecruit.AI
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/candidate")}>
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 group-active:scale-95">
+             <img src="/logo.png" alt="SmartRecruit Logo" className="h-full w-full object-cover" />
+          </div>
+          <span className="text-2xl font-display font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-indigo-800">
+            SmartRecruit.AI
+          </span>
         </div>
 
         <nav className="hidden items-center gap-2 md:flex">

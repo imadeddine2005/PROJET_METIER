@@ -23,7 +23,7 @@ function Login() {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message);
+      toast.error(message, { toastId: 'login-err' });
     }
     if (isSuccess || user) {
       if (user?.roles.includes("ROLE_ADMIN")) {

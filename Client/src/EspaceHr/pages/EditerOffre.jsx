@@ -49,7 +49,7 @@ function EditerOffre() {
   useEffect(() => {
     if (isError) {
       setIsEditing(false)
-      toast.error(message || "Erreur lors de la modification de l'offre")
+      toast.error(message || "Erreur lors de la modification de l'offre", { toastId: 'edit-offre-err' })
       dispatch(reset())
     }
   }, [isError, message, dispatch])
@@ -58,7 +58,7 @@ function EditerOffre() {
   useEffect(() => {
     if (isSuccess && isEditing) {
       setIsEditing(false)
-      toast.success("Offre modifiée avec succès!")
+      toast.success("Offre modifiée avec succès!", { toastId: 'edit-offre-succ' })
       dispatch(reset())
       setTimeout(() => {
         navigate("/hr/offers")
@@ -113,7 +113,7 @@ function EditerOffre() {
     e.preventDefault()
 
     if (!validateForm()) {
-      toast.error("Veuillez corriger les erreurs du formulaire")
+      toast.error("Veuillez corriger les erreurs du formulaire", { toastId: 'edit-form-err' })
       return
     }
 

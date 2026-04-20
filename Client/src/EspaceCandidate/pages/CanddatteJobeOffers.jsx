@@ -22,7 +22,7 @@ function CanddatteJobeOffers() {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message || "Erreur lors du chargement des offres")
+      toast.error(message || "Erreur lors du chargement des offres", { toastId: 'cand-off-err' })
       dispatch(reset())
     }
   }, [isError, message, dispatch])

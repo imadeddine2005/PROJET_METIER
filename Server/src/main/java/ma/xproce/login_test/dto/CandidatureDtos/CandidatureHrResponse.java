@@ -45,6 +45,9 @@ public class CandidatureHrResponse {
     /** Vrai si l'administrateur a approuvé la demande d'accès au CV original pour ce RH */
     private boolean hasAccessToOriginalCv;
 
+    /** Le statut de la demande d'accès (EN_ATTENTE, APPROUVEE, REJETEE, ou null) */
+    private String accessRequestStatus;
+
     /** ID de la demande d'accès, utilisé pour télécharger le CV original si l'accès est accordé */
     private Long demandeAccesId;
 }
