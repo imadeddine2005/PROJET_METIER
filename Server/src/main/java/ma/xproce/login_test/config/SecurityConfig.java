@@ -103,7 +103,10 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",    // React dev
                 "http://localhost:5173",    // Vite dev server
-                "http://localhost:80"       // Client Docker en local
+                "http://localhost:80",
+                "http://100.51.240.199",
+                "http://3.232.133.202"
+                // Client Docker en local
                 // "http://16.170.26.64"   // ←  après déploiement EC2
         ));
 
