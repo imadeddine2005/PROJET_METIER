@@ -1,0 +1,33 @@
+name: Deploy Backend (EC2 #2)
+
+on:
+  push:
+    branches:
+      - deploy/aws-backend
+    paths:
+      - 'Server/**'           # Si Server/ modifié
+      - 'TextExtraction&LLm/**' # Si LLM modifié
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Backend to EC2 #2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_BACKEND_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/smartrecruit-backend
+            git pull origin deploy/aws-backend
+
+            # Rebuilder uniquement ce qui a changé
+            if git diff HEAD~1 --name-only | grep -q "Server/"; then
+              docker-compose -f docker-compose.backend.yml up -d --build server
+            fi
+            if git diff HEAD~1 --name-only | grep -q "TextExtraction"; then
+              docker-compose -f docker-compose.backend.yml up -d --build llm
+            fi
+
+            docker-compose -f docker-compose.backend.yml ps
