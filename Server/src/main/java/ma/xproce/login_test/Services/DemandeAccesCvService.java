@@ -14,6 +14,7 @@ import ma.xproce.login_test.dto.CvDownloadResponse;
 import ma.xproce.login_test.dto.DemandeAccesCvDtos.DemandeAccesCvAdminResponse;
 import ma.xproce.login_test.dto.DemandeAccesCvDtos.DemandeAccesCvResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,10 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     private final DemandeAccesCvMapper mapper;
     private final AuthorizationUtils authorizationUtils;
     private final ICvFileStorageService cvFileStorageService;
+
+    // "local" en dev, "s3" en prod (défini dans application-prod.properties)
+    @Value("${app.storage.type:local}")
+    private String storageType;
 
     @Autowired
     public DemandeAccesCvService(
@@ -51,20 +56,16 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     @Override
     @Transactional
     public DemandeAccesCvResponse creerDemande(Long candidatureId, String motif, String emailHr) {
-        // 1. Vérifier HR existe
         user_entity hr = userRepository.findByEmail(emailHr)
                 .orElseThrow(() -> new ResourceNotFoundException("HR non trouvé"));
 
-        // 2. Vérifier candidature existe
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvée"));
 
-        // 3. Prévenir doublons (un HR ne peut créer qu'une seule demande par candidature)
         if (demandeRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId()).isPresent()) {
             throw new InvalidFileException("Vous avez déjà demandé l'accès à cette candidature");
         }
 
-        // 4. Créer la demande
         DemandeAccesCv demande = new DemandeAccesCv();
         demande.setHr(hr);
         demande.setCandidature(candidature);
@@ -96,20 +97,16 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     @Override
     @Transactional
     public DemandeAccesCvAdminResponse approveDemande(Long demandeId, String emailAdmin, String decisionNote) {
-        // 1. Vérifier admin
         user_entity admin = userRepository.findByEmail(emailAdmin)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin non trouvé"));
 
-        // 2. Récupérer demande
         DemandeAccesCv demande = demandeRepository.findById(demandeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Demande non trouvée"));
 
-        // 3. Vérifier EN_ATTENTE
         if (demande.getStatus() != DemandeAccesCvStatus.EN_ATTENTE) {
             throw new InvalidFileException("Cette demande a déjà été traitée");
         }
 
-        // 4. Approuver
         demande.setStatus(DemandeAccesCvStatus.APPROUVEE);
         demande.setAdmin(admin);
         demande.setDecidedAt(LocalDateTime.now());
@@ -122,20 +119,16 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     @Override
     @Transactional
     public DemandeAccesCvAdminResponse rejectDemande(Long demandeId, String emailAdmin, String decisionNote) {
-        // 1. Vérifier admin
         user_entity admin = userRepository.findByEmail(emailAdmin)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin non trouvé"));
 
-        // 2. Récupérer demande
         DemandeAccesCv demande = demandeRepository.findById(demandeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Demande non trouvée"));
 
-        // 3. Vérifier EN_ATTENTE
         if (demande.getStatus() != DemandeAccesCvStatus.EN_ATTENTE) {
             throw new InvalidFileException("Cette demande a déjà été traitée");
         }
 
-        // 4. Rejeter
         demande.setStatus(DemandeAccesCvStatus.REFUSEE);
         demande.setAdmin(admin);
         demande.setDecidedAt(LocalDateTime.now());
@@ -148,23 +141,22 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
     @Override
     @Transactional(readOnly = true)
     public CvDownloadResponse downloadCv(Long demandeId) {
-        // 1. Récupérer la demande
         DemandeAccesCv demande = demandeRepository.findById(demandeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Demande non trouvée"));
 
-        // 2. Récupérer le fichier CV
         String storageKey = demande.getCandidature().getCvFile().getStorageKey();
         String originalFileName = demande.getCandidature().getCvFile().getOriginalFileName();
-        
+
         if (storageKey == null || storageKey.isEmpty()) {
             throw new InvalidFileException("Le fichier CV n'est pas disponible");
         }
 
-        // 3. Télécharger via le service de stockage
-        byte[] cvContent = cvFileStorageService.getFile(storageKey);
-        
-        // 4. Retourner le contenu + nom original
-        return new CvDownloadResponse(cvContent, originalFileName);
+        boolean isS3 = "s3".equals(storageType);
+        return CvDownloadResponse.builder()
+                .content(isS3 ? null : cvFileStorageService.getFile(storageKey))
+                .fileName(originalFileName)
+                .storageKey(isS3 ? storageKey : null)
+                .build();
     }
 
     @Override
@@ -174,17 +166,17 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
         DemandeAccesCv demande = demandeRepository.findById(demandeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Demande non trouvée"));
 
-        // 2. Vérifier que le statut est APPROUVEE (admin a validé)
+        // 2. Vérifier statut APPROUVEE
         if (demande.getStatus() != DemandeAccesCvStatus.APPROUVEE) {
             throw new AccessDeniedException("Seules les demandes approuvées permettent d'accéder au CV original");
         }
 
-        // 3. Vérifier que ce HR est propriétaire de la demande
+        // 3. Vérifier que ce HR est bien le propriétaire de la demande
         if (!demande.getHr().getEmail().equals(emailHr)) {
             throw new AccessDeniedException("Vous n'avez pas accès à cette demande");
         }
 
-        // 4. ✅ DEMANDE APPROUVÉE → on sert le CV ORIGINAL (nom réel, contacts visibles)
+        // 4. Récupérer la clé de stockage du CV original
         String storageKey = demande.getCandidature().getCvFile().getStorageKey();
         String originalFileName = demande.getCandidature().getCvFile().getOriginalFileName();
 
@@ -192,16 +184,18 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
             throw new InvalidFileException("Le fichier CV original n'est pas disponible");
         }
 
-        byte[] cvContent = cvFileStorageService.getFile(storageKey);
-        return new CvDownloadResponse(cvContent, originalFileName);
+        // 5. Construire la réponse selon le mode de stockage
+        boolean isS3 = "s3".equals(storageType);
+        return CvDownloadResponse.builder()
+                .content(isS3 ? null : cvFileStorageService.getFile(storageKey))
+                .fileName(originalFileName)
+                .storageKey(isS3 ? storageKey : null)
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public CvDownloadResponse downloadAnonymizedCv(Long candidatureId, String emailHr) {
-        // Cette méthode est accessible à TOUT HR, même sans demande approuvée.
-        // Elle sert TOUJOURS le CV anonymisé (données personnelles caviardées).
-
         // 1. Vérifier que le HR existe
         userRepository.findByEmail(emailHr)
                 .orElseThrow(() -> new ResourceNotFoundException("HR non trouvé"));
@@ -217,8 +211,12 @@ public class DemandeAccesCvService implements IDemandeAccesCvService {
             throw new InvalidFileException("Le CV anonymisé n'est pas encore disponible");
         }
 
-        // 4. ✅ Servir le CV ANONYMISÉ (nom générique, sans données personnelles)
-        byte[] cvContent = cvFileStorageService.getFile(anonymizedKey);
-        return new CvDownloadResponse(cvContent, "cv_anonymise.pdf");
+        // 4. Construire la réponse selon le mode de stockage
+        boolean isS3 = "s3".equals(storageType);
+        return CvDownloadResponse.builder()
+                .content(isS3 ? null : cvFileStorageService.getFile(anonymizedKey))
+                .fileName("cv_anonymise.pdf")
+                .storageKey(isS3 ? anonymizedKey : null)
+                .build();
     }
 }

@@ -19,12 +19,12 @@ import ma.xproce.login_test.dto.CandidatureDtos.CandidatureHrResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
 import ma.xproce.login_test.dto.CvDownloadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;  // ← corrigé (était lombok.Value)
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
@@ -43,6 +43,9 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
     private final DemandeAccesCvRepository demandeAccesCvRepository;
     private final AiService aiService;
     private final CvFileValidationService cvFileValidator;
+
+    @Value("${app.storage.type:local}")
+    private String storageType;
 
     @Autowired
     public CandidatureOffreService(
@@ -83,15 +86,13 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         List<Candidature> list = candidatureRepository.findByOffreId(offreId);
         return list.stream().map(c -> {
             CandidatureHrResponse dto = candidatureMapper.toHrResponse(c);
-            
-            // Check if HR has approved access to original CV
             demandeAccesCvRepository.findByCandidatureIdAndHrId(c.getId(), hr.getId())
-                .ifPresent(demande -> {
-                    if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
-                        dto.setHasAccessToOriginalCv(true);
-                        dto.setDemandeAccesId(demande.getId());
-                    }
-                });
+                    .ifPresent(demande -> {
+                        if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                            dto.setHasAccessToOriginalCv(true);
+                            dto.setDemandeAccesId(demande.getId());
+                        }
+                    });
             return dto;
         }).toList();
     }
@@ -99,44 +100,30 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
     @Override
     @Transactional
     public CandidatureResponse createCandidature(Long offreId, MultipartFile cvFile, String emailCandidat) {
-        // 1. Valider le fichier (service centralisé, réutilisé partout)
         cvFileValidator.validate(cvFile);
 
-        // 2. Récupérer l'utilisateur
         user_entity candidat = userRepository.findByEmail(emailCandidat)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidat non trouve"));
 
-        // 3. Récupérer l'offre
         Offre offre = offreRepository.findById(offreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offre non trouvee"));
 
-        // 4. Vérifier que le candidat n'a pas déjà postulé à cette offre
         if (candidatureRepository.findByOffreIdAndCandidatId(offreId, candidat.getId()).isPresent()) {
             throw new InvalidFileException("Vous avez déjà postulé à cette offre");
         }
 
-        // 5. Construire un contexte textuel enrichi de l'offre pour l'IA
         String offerContext = buildOfferContext(offre);
-
-        // 6. Appeler le service IA Flask (stateless) avec le FICHIER brut + contexte de l'offre
-        // L'IA va extraire le texte, analyser, et générer le PDF anonymisé en une seule passe.
         AiAnalysisResponse aiResult = aiService.analyzeCv(cvFile, offerContext);
-
-        // 7. Sauvegarder le fichier CV original (local en dev, S3 en prod)
         CvFile savedCvFile = sauvegarderCvFile(cvFile);
 
-        // 8. Créer la candidature avec toutes les données IA
         Candidature candidature = new Candidature();
         candidature.setOffre(offre);
         candidature.setCandidat(candidat);
         candidature.setCvFile(savedCvFile);
         candidature.setDateSoumission(LocalDateTime.now());
-
-        // Score et analyse textuelle
         candidature.setScoreCompatibilite(aiResult.getScore());
         candidature.setScoreAnalysis(aiResult.getScoreAnalysis());
 
-        // Compétences et diplômes
         if (aiResult.getCompetences() != null && !aiResult.getCompetences().isEmpty()) {
             candidature.setCompetences(String.join(" | ", aiResult.getCompetences()));
         }
@@ -144,42 +131,28 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
             candidature.setDiplomes(String.join(" | ", aiResult.getDiplomes()));
         }
 
-        // 9. Gérer le PDF anonymisé retourné par l'IA (en Base64)
         String base64Pdf = aiResult.getAnonymizedPdfBase64();
         if (base64Pdf != null && !base64Pdf.isBlank()) {
             try {
                 byte[] anonymizedBytes = Base64.getDecoder().decode(base64Pdf);
-                // Sauvegarder le fichier anonymisé via le service de stockage existant
                 String anonymizedKey = cvFileStorageService.saveFile(
-                        anonymizedBytes, 
-                        "anon_" + savedCvFile.getOriginalFileName(), 
+                        anonymizedBytes,
+                        "anon_" + savedCvFile.getOriginalFileName(),
                         "application/pdf"
                 );
                 savedCvFile.setAnonymizedStorageKey(anonymizedKey);
                 cvFileRepository.save(savedCvFile);
             } catch (Exception e) {
-                System.err.println("⚠️  Échec du stockage du PDF anonymisé envoyé par l'IA : " + e.getMessage());
+                System.err.println("⚠️  Échec du stockage du PDF anonymisé : " + e.getMessage());
             }
         }
 
         Candidature saved = candidatureRepository.save(candidature);
-
         return candidatureMapper.toCandidateResponse(saved);
     }
 
-    /**
-     * Construit un contexte textuel enrichi de l'offre pour l'IA.
-     * Combine le titre, la description et les compétences requises
-     * afin de donner au LLM le meilleur contexte possible pour le matching.
-     *
-     * Exemple de sortie :
-     * "Poste : Développeur Android Senior
-     *  Description : Nous recherchons...
-     *  Compétences requises : Kotlin, Android Studio, Firebase"
-     */
     private String buildOfferContext(Offre offre) {
         StringBuilder sb = new StringBuilder();
-
         if (offre.getTitre() != null && !offre.getTitre().isBlank()) {
             sb.append("Poste : ").append(offre.getTitre()).append("\n\n");
         }
@@ -189,7 +162,6 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         if (offre.getCompetencesRequises() != null && !offre.getCompetencesRequises().isBlank()) {
             sb.append("Compétences requises : ").append(offre.getCompetencesRequises());
         }
-
         return sb.toString().trim();
     }
 
@@ -236,42 +208,40 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         candidature.setStatus(newStatus);
 
         Candidature updated = candidatureRepository.save(candidature);
-        
+
         CandidatureHrResponse dto = candidatureMapper.toHrResponse(updated);
-        dto.setHasAccessToOriginalCv(true); // Since they are updating status, they must have approved access already
-        
+        dto.setHasAccessToOriginalCv(true);
         demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
                 .ifPresent(demande -> dto.setDemandeAccesId(demande.getId()));
-                
-        // Retourner la vue RH (avec scoreAnalysis, compétences)
+
         return dto;
     }
 
-    /**
-     * Candidat — visualiser/télécharger son propre CV (original).
-     * Sécurité : on vérifie que la candidature appartient bien au candidat connecté.
-     */
     @Override
     @Transactional(readOnly = true)
     public CvDownloadResponse getMyCv(Long candidatureId, String emailCandidat) {
-        // Récupérer la candidature
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature introuvable : " + candidatureId));
 
-        // Vérifier que c'est bien le candidat propriétaire
         if (!candidature.getCandidat().getEmail().equals(emailCandidat)) {
             throw new AccessDeniedException("Vous n'êtes pas autorisé à accéder à ce CV.");
         }
 
-        // Récupérer le fichier CV
         CvFile cvFile = candidature.getCvFile();
         if (cvFile == null) {
             throw new ResourceNotFoundException("Aucun fichier CV associé à cette candidature.");
         }
 
-        byte[] content = cvFileStorageService.getFile(cvFile.getStorageKey());
-        String fileName = cvFile.getOriginalFileName() != null ? cvFile.getOriginalFileName() : "mon-cv.pdf";
+        String storageKey = cvFile.getStorageKey();                    // ← corrigé (était "storageKey" indéfini)
+        String fileName = cvFile.getOriginalFileName() != null
+                ? cvFile.getOriginalFileName()
+                : "mon-cv.pdf";
 
-        return new CvDownloadResponse(content, fileName);
+        boolean isS3 = "s3".equals(storageType);
+        return CvDownloadResponse.builder()
+                .content(isS3 ? null : cvFileStorageService.getFile(storageKey))  // ← corrigé (était cvContent)
+                .fileName(fileName)
+                .storageKey(isS3 ? storageKey : null)
+                .build();
     }
 }

@@ -1,0 +1,56 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+
+    {
+      "Sid": "S3CvBucketAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::smartrecruit-cvs-prod/cvs/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-server-side-encryption": "AES256"
+        }
+      }
+    },
+
+    {
+      "Sid": "S3ListBucket",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::smartrecruit-cvs-prod",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "cvs/*"
+        }
+      }
+    },
+
+    {
+      "Sid": "SecretsManagerReadSecret",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": "arn:aws:secretsmanager:eu-west-1:VOTRE_ACCOUNT_ID:secret:smartrecruit/prod/secrets-*"
+    },
+
+    {
+      "Sid": "DenyPublicS3Access",
+      "Effect": "Deny",
+      "Action": "s3:PutBucketPublicAccessBlock",
+      "Resource": "arn:aws:s3:::smartrecruit-cvs-prod",
+      "Condition": {
+        "StringEquals": {
+          "s3:BlockPublicAcls": "false"
+        }
+      }
+    }
+
+  ]
+}
