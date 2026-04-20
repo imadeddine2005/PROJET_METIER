@@ -1,0 +1,24 @@
+name: Deploy Frontend (EC2 #1)
+
+on:
+  push:
+    branches:
+      - deploy/aws-frontend
+    paths:
+      - 'Client/**'        # Se déclenche uniquement si Client/ est modifié
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Frontend to EC2 #1
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_FRONTEND_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/smartrecruit-frontend
+            git pull origin deploy/aws-frontend
+            docker-compose -f docker-compose.frontend.yml up -d --build
+            docker-compose -f docker-compose.frontend.yml ps
