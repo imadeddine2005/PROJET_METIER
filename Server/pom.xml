@@ -108,6 +108,12 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.2</version>
         </dependency>
+
+        <!-- Spring Mail : Pour l'envoi d'e-mails -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

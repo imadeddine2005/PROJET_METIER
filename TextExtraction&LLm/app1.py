@@ -53,7 +53,8 @@ from llm.groq_service import (
     analyze_matching_with_llm,
     extract_information_with_llm,
     predict_job_category_with_llm,
-    anonymize_cv_with_llm
+    anonymize_cv_with_llm,
+    generate_email_with_llm
 )
 from extraction.extractor import extract_text
 from extraction.redactor import redact_pdf
@@ -292,6 +293,31 @@ def health():
         "version": "2.0"
     }), 200
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTE 4 : Génération d'e-mail IA (Acceptation/Refus)
+# ═══════════════════════════════════════════════════════════════════════════════
+@app.route("/api/generate-email", methods=["POST"])
+def generate_email():
+    """
+    Crée un draft d'e-mail pour un candidat en fonction de la décision RH.
+    Attendu en JSON : { candidate_name: "...", job_title: "...", decision: "ACCEPTEE", language: "fr" }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Aucun corps JSON fourni."}), 400
+
+    candidate_name = data.get("candidate_name", "Candidat")
+    job_title = data.get("job_title", "le poste")
+    decision = data.get("decision", "REFUSEE")
+    language = data.get("language", "fr")
+    reasons = data.get("reasons", "")
+
+    email_draft = generate_email_with_llm(candidate_name, job_title, decision, language, reasons)
+    
+    return jsonify({
+        "email": email_draft
+    }), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)

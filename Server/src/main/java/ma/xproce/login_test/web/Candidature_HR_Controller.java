@@ -53,4 +53,15 @@ public class Candidature_HR_Controller {
         );
         return ResponseEntity.ok(ApiResponse.success("Statut mis à jour", response));
     }
+
+    // HR seulement — consulter l'historique des décisions pour une offre
+    @GetMapping("/{offreId}/history")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
+    public ResponseEntity<ApiResponse<List<CandidatureHrResponse>>> getHistoriqueDecisions(
+            @PathVariable Long offreId,
+            Authentication auth
+    ) {
+        List<CandidatureHrResponse> list = candidatureOffreService.getHistoriqueDecisionsForOffre(offreId, auth.getName());
+        return ResponseEntity.ok(ApiResponse.success("Historique des décisions", list));
+    }
 }

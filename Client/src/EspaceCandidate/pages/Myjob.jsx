@@ -57,21 +57,29 @@ function Myjob() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-2 animate-fade-in pb-2">
+    <div className="max-w-6xl mx-auto -mt-6 space-y-3 animate-fade-in pb-2">
       
-      {/* Header Section — Seulment affiché avant l'analyse */}
+      {/* Header Premium — Affiché avant l'analyse */}
       {!prediction && !isProcessing && (
-        <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-[10px] font-bold uppercase tracking-wider">
-            <FaMagic className="h-3 w-3" />
-            Orientation IA
+        <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-4 sm:p-5 text-white shadow-xl">
+          {/* Decorative Gradients */}
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-500/20 to-transparent pointer-events-none"></div>
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 text-white/5 pointer-events-none">
+            <FaMagic className="w-32 h-32" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-surface-900 tracking-tight">
-            Votre <span className="text-brand-600">Métier Idéal ?</span>
-          </h1>
-          <p className="text-surface-600 font-medium max-w-lg mx-auto text-sm leading-relaxed">
-            Analyse prédictive de vos compétences en quelques secondes.
-          </p>
+          
+          <div className="relative z-10 text-center max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-2 py-0.5 mb-2 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-md border border-white/20 uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+              <span className="text-slate-200">Orientation IA</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
+              Votre <span className="text-brand-400">Métier Idéal ?</span>
+            </h1>
+            <p className="mt-1 text-slate-300 text-sm font-medium">
+              Analyse prédictive de vos compétences grâce à notre IA.
+            </p>
+          </div>
         </div>
       )}
 
@@ -81,8 +89,8 @@ function Myjob() {
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            className={`relative group h-40 border-2 border-dashed rounded-2xl transition-all duration-300 flex flex-col items-center justify-center p-4 bg-white shadow-lg shadow-surface-200/50 
-              ${selectedFile ? 'border-brand-400 bg-brand-50/10' : 'border-surface-200 hover:border-brand-300 hover:bg-surface-50/50'}`}
+            className={`relative group h-44 border-2 border-dashed rounded-3xl transition-all duration-300 flex flex-col items-center justify-center p-4 shadow-sm hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-1
+              ${selectedFile ? 'border-brand-500 bg-brand-50/50' : 'border-slate-300 bg-white hover:border-brand-400 hover:bg-slate-50'}`}
           >
             <input
               type="file"
@@ -106,17 +114,17 @@ function Myjob() {
             )}
             
             <div className="flex flex-col items-center pointer-events-none">
-              <div className={`p-3 rounded-xl mb-2 transition-all duration-500 
-                ${selectedFile ? 'bg-brand-500 text-white scale-110' : 'bg-surface-100 text-surface-400 group-hover:scale-110 group-hover:bg-brand-50 group-hover:text-brand-500'}`}
+              <div className={`p-4 rounded-full mb-3 transition-all duration-500 shadow-md
+                ${selectedFile ? 'bg-brand-600 text-white scale-110' : 'bg-slate-100 text-slate-400 group-hover:scale-110 group-hover:bg-brand-50 group-hover:text-brand-600'}`}
               >
-                <FaCloudUploadAlt className="h-6 w-6" />
+                <FaCloudUploadAlt className="h-8 w-8" />
               </div>
 
               <div className="text-center">
-                <p className="text-sm font-bold text-surface-800">
+                <p className="text-base font-extrabold text-slate-900">
                   {selectedFile ? selectedFile.name : "Déposez votre CV ici"}
                 </p>
-                <p className="text-[10px] text-surface-600 font-bold mt-0.5">
+                <p className="text-xs text-slate-500 font-bold mt-1">
                   {selectedFile ? "Prêt pour l'analyse" : "Format PDF uniquement"}
                 </p>
               </div>
@@ -189,36 +197,38 @@ function Myjob() {
             </div>
 
             {/* Confidence Card (Takes 1/4) */}
-            <div className="rounded-2xl border border-surface-200 bg-white p-3 shadow-sm flex flex-col items-center justify-center text-center space-y-2">
-              <p className="text-[9px] font-bold text-surface-600 uppercase tracking-widest">Confiance IA</p>
+            <div className="relative rounded-3xl border-2 border-brand-300 hover:border-brand-500 transition-colors bg-white p-4 shadow-sm flex flex-col items-center justify-center text-center space-y-2 overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-brand-600 z-20"></div>
+              <p className="text-xs font-extrabold text-slate-600 uppercase tracking-widest mt-2">Confiance IA</p>
               <div className="relative flex items-center justify-center">
-                 <svg className="h-20 w-20 transform -rotate-90">
-                  <circle className="text-surface-100" strokeWidth="5" stroke="currentColor" fill="transparent" r="37" cx="40" cy="40" />
-                  <circle className="text-brand-500" strokeWidth="5" strokeDasharray={232.5} strokeDashoffset={232.5 - (232.5 * prediction.confiance) / 100} strokeLinecap="round" stroke="currentColor" fill="transparent" r="37" cx="40" cy="40" />
+                 <svg className="h-24 w-24 transform -rotate-90">
+                  <circle className="text-slate-100" strokeWidth="6" stroke="currentColor" fill="transparent" r="45" cx="48" cy="48" />
+                  <circle className="text-brand-500 drop-shadow-md" strokeWidth="6" strokeDasharray={282.7} strokeDashoffset={282.7 - (282.7 * prediction.confiance) / 100} strokeLinecap="round" stroke="currentColor" fill="transparent" r="45" cx="48" cy="48" />
                 </svg>
-                <span className="absolute text-lg font-black text-surface-800">{prediction.confiance}%</span>
+                <span className="absolute text-2xl font-black text-slate-900">{prediction.confiance}%</span>
               </div>
             </div>
 
             {/* Alternatives Card (Takes 1/4) */}
-            <div className="rounded-2xl border border-surface-200 bg-white p-3 shadow-sm space-y-2 flex flex-col justify-center">
-              <div className="flex items-center gap-2">
-                <FaChartBar className="h-3 w-3 text-brand-500" />
-                <h4 className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Top Alternatives</h4>
+            <div className="relative rounded-3xl border-2 border-brand-300 hover:border-brand-500 transition-colors bg-white p-5 shadow-sm space-y-3 flex flex-col justify-center overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-brand-600 z-20"></div>
+              <div className="flex items-center gap-2 mt-1">
+                <FaChartBar className="h-4 w-4 text-brand-500" />
+                <h4 className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Top Alternatives</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {prediction.toutes_categories && Object.entries(prediction.toutes_categories)
                   .filter(([name]) => name !== prediction.metier_ideal)
                   .sort((a, b) => b[1] - a[1])
                   .slice(0, 2)
                   .map(([name, score], idx) => (
-                  <div key={idx} className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="font-semibold text-surface-700 truncate pr-2">{name}</span>
-                      <span className="text-surface-600 font-bold">{score}%</span>
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="font-extrabold text-slate-900 truncate pr-2">{name}</span>
+                      <span className="text-slate-600 font-bold">{score}%</span>
                     </div>
-                    <div className="h-1 w-full bg-surface-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-surface-400 rounded-full" style={{ width: `${score}%` }} />
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-400 rounded-full shadow-sm" style={{ width: `${score}%` }} />
                     </div>
                   </div>
                 ))}

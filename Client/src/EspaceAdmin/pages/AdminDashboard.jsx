@@ -43,9 +43,9 @@ function AdminDashboard() {
   const renderCard = (demande) => (
     <div 
       key={demande.id} 
-      className="group bg-white/90 backdrop-blur-xl rounded-[24px] border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
+      className="group relative flex flex-col bg-white rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border-2 border-indigo-300 hover:border-indigo-500 overflow-hidden justify-between"
     >
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500" />
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600 group-hover:bg-indigo-700 transition-colors duration-300 z-20" />
 
       {/* Card Header */}
       <div className="p-6 pb-4 flex items-start justify-between">
@@ -55,9 +55,9 @@ function AdminDashboard() {
               {demande.hrEmail?.substring(0, 2).toUpperCase() || "HR"}
             </div>
             <div>
-              <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">De: {demande.hrEmail}</h3>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
-                <FaCalendarAlt className="text-slate-400" />
+              <h3 className="text-[13px] font-extrabold text-slate-900 tracking-tight">De: {demande.hrEmail}</h3>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-700 font-bold">
+                <FaCalendarAlt className="text-slate-500" />
                 {new Date(demande.dateDemande).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 })}
@@ -77,8 +77,8 @@ function AdminDashboard() {
            </span>
         </div>
         <div className="relative">
-          <div className="absolute -left-2 top-0 text-slate-200 text-2xl font-serif">"</div>
-          <p className="text-[13px] text-slate-700 font-medium ml-2 leading-relaxed relative z-10 italic">
+          <div className="absolute -left-2 top-0 text-slate-300 text-3xl font-serif">"</div>
+          <p className="text-[13px] text-slate-900 font-semibold ml-2 leading-relaxed relative z-10 italic">
             {demande.motif}
           </p>
         </div>
@@ -123,16 +123,23 @@ function AdminDashboard() {
   if (isLoading && (!pendingRequests || pendingRequests.length === 0)) return <Spinner />
 
   return (
-    <div className="w-full space-y-8 animate-fade-in pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight flex items-center gap-3">
-            <FaShieldAlt className="text-indigo-500" />
+    <div className="w-full space-y-8 animate-fade-in-up pb-12">
+      {/* Header Premium */}
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-6 sm:p-8 text-white shadow-xl">
+        {/* Decorative Gradients */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/20 to-transparent pointer-events-none"></div>
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 text-white/5 pointer-events-none">
+          <FaShieldAlt className="w-48 h-48" />
+        </div>
+        
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-white/10 text-xs font-medium backdrop-blur-md border border-white/20">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+            <span className="text-slate-200">Centre de contrôle</span>
+          </div>
+          <h2 className="text-3xl font-display font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
             Contrôle d'Accès CV
-          </h1>
-          <p className="text-slate-600 font-medium">
-            Gérez les requêtes des recruteurs pour débloquer les données personnelles des candidats.
-          </p>
+          </h2>
         </div>
       </div>
 
@@ -142,14 +149,14 @@ function AdminDashboard() {
           {pendingRequests.map(demande => renderCard(demande))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 bg-white/50 border border-slate-200 border-dashed rounded-[2rem]">
-          <div className="h-16 w-16 mb-4 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-            <FaShieldAlt size={28} />
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 backdrop-blur-sm py-24 px-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-6">
+            <FaShieldAlt className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">
+          <h3 className="text-2xl font-bold text-slate-900">
             Aucune demande en attente
           </h3>
-          <p className="text-slate-500 mt-2 max-w-sm text-center font-medium">
+          <p className="mt-3 text-slate-500 max-w-md mx-auto text-lg">
             Vous êtes à jour ! Aucun recruteur n'a demandé l'accès à un CV pour le moment.
           </p>
         </div>

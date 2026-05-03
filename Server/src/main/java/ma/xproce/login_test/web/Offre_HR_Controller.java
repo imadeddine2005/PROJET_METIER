@@ -37,6 +37,14 @@ public class Offre_HR_Controller {
         return ResponseEntity.ok(ApiResponse.success("Mes offres", offres));
     }
 
+    // HR seulement — liste de toutes les offres du système (pour l'historique par exemple)
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
+    public ResponseEntity<ApiResponse<List<OffreResponse>>> getAllOffresHr() {
+        List<OffreResponse> offres = offreService.getAllOffres();
+        return ResponseEntity.ok(ApiResponse.success("Toutes les offres", offres));
+    }
+
     // HR seulement — detail d'une offre (proprietaire ou ADMIN)
     @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAnyRole('HR','ADMIN')")

@@ -237,10 +237,13 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
 
         statusValidator.validateTransition(candidature.getStatus(), newStatus);
         candidature.setStatus(newStatus);
-
-        Candidature updated = candidatureRepository.save(candidature);
+        if (newStatus == CandidatureStatus.ACCEPTEE || newStatus == CandidatureStatus.REFUSEE) {
+            candidature.setDateDecision(LocalDateTime.now());
+            candidature.setDecisionMaker(hr);
+        }
+        Candidature saved = candidatureRepository.save(candidature);
         
-        CandidatureHrResponse dto = candidatureMapper.toHrResponse(updated);
+        CandidatureHrResponse dto = candidatureMapper.toHrResponse(saved);
         
         demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
                 .ifPresent(demande -> {
@@ -281,5 +284,38 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         String fileName = cvFile.getOriginalFileName() != null ? cvFile.getOriginalFileName() : "mon-cv.pdf";
 
         return new CvDownloadResponse(content, fileName);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CandidatureHrResponse> getHistoriqueDecisionsForOffre(Long offreId, String emailHr) {
+        user_entity hr = userRepository.findByEmail(emailHr)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur HR non trouve"));
+
+        Offre offre = offreRepository.findById(offreId)
+                .orElseThrow(() -> new ResourceNotFoundException("Offre non trouvee"));
+
+        List<Candidature> candidatures = candidatureRepository.findByOffreId(offreId).stream()
+                .filter(c -> c.getStatus() == CandidatureStatus.ACCEPTEE || c.getStatus() == CandidatureStatus.REFUSEE)
+                .sorted((c1, c2) -> {
+                    if (c1.getDateDecision() == null && c2.getDateDecision() == null) return 0;
+                    if (c1.getDateDecision() == null) return 1;
+                    if (c2.getDateDecision() == null) return -1;
+                    return c2.getDateDecision().compareTo(c1.getDateDecision());
+                })
+                .toList();
+
+        return candidatures.stream().map(c -> {
+            CandidatureHrResponse dto = candidatureMapper.toHrResponse(c);
+            demandeAccesCvRepository.findByCandidatureIdAndHrId(c.getId(), hr.getId())
+                    .ifPresent(demande -> {
+                        if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                            dto.setHasAccessToOriginalCv(true);
+                            dto.setDemandeAccesId(demande.getId());
+                        }
+                        dto.setAccessRequestStatus(demande.getStatus().name());
+                    });
+            return dto;
+        }).toList();
     }
 }
