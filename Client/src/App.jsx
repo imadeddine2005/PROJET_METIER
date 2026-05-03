@@ -13,6 +13,8 @@ import MesOffres from "./EspaceHr/pages/MesOffres"
 import CreerOffre from "./EspaceHr/pages/CreerOffre"
 import EditerOffre from "./EspaceHr/pages/EditerOffre"
 import DemandesAcces from "./EspaceHr/pages/DemandesAcces"
+import HistoriqueOffres from "./EspaceHr/pages/HistoriqueOffres"
+import HistoriqueDecisions from "./EspaceHr/pages/HistoriqueDecisions"
 import CanddatteJobeOffers from "./EspaceCandidate/pages/CanddatteJobeOffers"
 import MesCandidatures from "./EspaceCandidate/pages/mes-candidatures"
 import OffreCandidatures from "./EspaceHr/pages/OffreCandidatures"
@@ -48,6 +50,8 @@ function App() {
               <Route path="create-offer" element={<CreerOffre />} />
               <Route path="edit-offer/:offreId" element={<EditerOffre />} />
               <Route path="access-requests" element={<DemandesAcces />} />
+              <Route path="history" element={<HistoriqueOffres />} />
+              <Route path="history/:offreId" element={<HistoriqueDecisions />} />
             </Route>
           </Route>
 

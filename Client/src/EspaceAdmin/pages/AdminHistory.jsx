@@ -35,9 +35,9 @@ function AdminHistory() {
   const renderCard = (demande) => (
     <div 
       key={demande.id} 
-      className="group bg-white/90 backdrop-blur-xl rounded-[24px] border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
+      className="group relative flex flex-col bg-white rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border-2 border-indigo-300 hover:border-indigo-500 overflow-hidden justify-between"
     >
-      <div className={`absolute top-0 left-0 w-full h-1 ${demande.status === 'APPROUVEE' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`} />
+      <div className={`absolute top-0 left-0 w-full h-1.5 z-20 transition-colors duration-300 ${demande.status === 'APPROUVEE' ? 'bg-emerald-500 group-hover:bg-emerald-600' : 'bg-rose-500 group-hover:bg-rose-600'}`} />
 
       {/* Card Header */}
       <div className="p-6 pb-4 flex items-start justify-between">
@@ -47,9 +47,9 @@ function AdminHistory() {
               {demande.hrEmail?.substring(0, 2).toUpperCase() || "HR"}
             </div>
             <div>
-              <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">De: {demande.hrEmail}</h3>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
-                <FaCalendarAlt className="text-slate-400" />
+              <h3 className="text-[13px] font-extrabold text-slate-900 tracking-tight">De: {demande.hrEmail}</h3>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-700 font-bold">
+                <FaCalendarAlt className="text-slate-500" />
                 {new Date(demande.dateDemande).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 })}
@@ -72,16 +72,16 @@ function AdminHistory() {
            </span>
         </div>
         <div className="relative">
-          <div className="absolute -left-2 top-0 text-slate-200 text-2xl font-serif">"</div>
-          <p className="text-[13px] text-slate-700 font-medium ml-2 leading-relaxed relative z-10 italic">
+          <div className="absolute -left-2 top-0 text-slate-300 text-3xl font-serif">"</div>
+          <p className="text-[13px] text-slate-900 font-semibold ml-2 leading-relaxed relative z-10 italic">
             {demande.motif}
           </p>
         </div>
 
         {demande.decisionNote && (
-          <div className={`mt-4 p-3 rounded-xl border ${demande.status === 'APPROUVEE' ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'}`}>
-            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Votre note:</h4>
-            <p className={`text-xs ${demande.status === 'APPROUVEE' ? 'text-emerald-800' : 'text-red-800'}`}>{demande.decisionNote}</p>
+          <div className={`mt-4 p-3 rounded-xl border-2 ${demande.status === 'APPROUVEE' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-red-50/50 border-red-200'}`}>
+            <h4 className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-1">Votre note:</h4>
+            <p className={`text-xs font-bold ${demande.status === 'APPROUVEE' ? 'text-emerald-900' : 'text-red-900'}`}>{demande.decisionNote}</p>
           </div>
         )}
       </div>
@@ -108,18 +108,24 @@ function AdminHistory() {
   if (isLoading && (!historyRequests || historyRequests.length === 0)) return <Spinner />
 
   return (
-    <div className="w-full space-y-8 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-slate-200 flex items-center justify-center">
-            <FaHistory className="text-slate-500" />
+    <div className="w-full space-y-8 animate-fade-in-up pb-12">
+      {/* Header Premium */}
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-6 sm:p-8 text-white shadow-xl">
+        {/* Decorative Gradients */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/20 to-transparent pointer-events-none"></div>
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 text-white/5 pointer-events-none">
+          <FaHistory className="w-48 h-48" />
+        </div>
+        
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-white/10 text-xs font-medium backdrop-blur-md border border-white/20">
+            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+            <span className="text-slate-200">Archive & Historique</span>
           </div>
-          Historique des Décisions
-        </h1>
-        <p className="text-slate-600 font-medium ml-1">
-          Visualisez l'ensemble des requêtes d'accès au CV originales que vous avez approuvées ou refusées.
-        </p>
+          <h2 className="text-3xl font-display font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
+            Historique des Décisions
+          </h2>
+        </div>
       </div>
 
       {/* Content */}
@@ -128,12 +134,12 @@ function AdminHistory() {
           {historyRequests.map(renderCard)}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 bg-white/50 border border-slate-200 border-dashed rounded-[2rem]">
-          <div className="h-16 w-16 mb-4 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-            <FaShieldAlt size={28} />
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 backdrop-blur-sm py-24 px-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-6">
+            <FaShieldAlt className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">Aucun historique</h3>
-          <p className="text-slate-500 mt-2 max-w-sm text-center font-medium">
+          <h3 className="text-2xl font-bold text-slate-900">Aucun historique</h3>
+          <p className="mt-3 text-slate-500 max-w-md mx-auto text-lg">
             L'historique de vos décisions est vide. Acceptez ou refusez une requête pour la voir apparaître ici.
           </p>
         </div>

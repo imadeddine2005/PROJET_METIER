@@ -43,6 +43,9 @@ public class CandidatureMapper {
 
         dto.setStatus(c.getStatus() != null ? c.getStatus().name() : null);
         dto.setDateSoumission(c.getDateSoumission());
+        dto.setDateDecision(c.getDateDecision());
+        dto.setEmailSentContent(c.getEmailSentContent());
+        dto.setDecisionMakerName(c.getDecisionMaker() != null ? c.getDecisionMaker().getName() : null);
         dto.setCvFileId(c.getCvFile() != null ? c.getCvFile().getId() : null);
         return dto;
     }

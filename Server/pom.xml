@@ -169,6 +169,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Mail : Pour l'envoi d'e-mails -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

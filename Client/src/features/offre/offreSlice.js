@@ -82,6 +82,30 @@ export const fetchMyOffres = createAsyncThunk(
   }
 );
 
+// HR - Get all offers (for history, etc.)
+export const fetchAllOffresHr = createAsyncThunk(
+  "offre/fetchAllOffresHr",
+  async (_, thunkAPI) => {
+    try {
+      return await offreService.getAllOffresHr();
+    } catch (error) {
+      let message;
+      if (error.response && error.response.data) {
+        if (error.response.data.fieldErrors) {
+          message = Object.values(error.response.data.fieldErrors).join(", ");
+        } else if (error.response.data.message) {
+          message = error.response.data.message;
+        } else {
+          message = error.message;
+        }
+      } else {
+        message = error.toString();
+      }
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Create offer
 export const createOffre = createAsyncThunk(
   "offre/createOffre",
@@ -210,6 +234,21 @@ export const offreSlice = createSlice({
         state.offres = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchMyOffres.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+        state.offres = [];
+      })
+      // Fetch all HR's offres
+      .addCase(fetchAllOffresHr.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchAllOffresHr.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.offres = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchAllOffresHr.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;

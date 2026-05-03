@@ -4,6 +4,7 @@ import {
   FaPlusCircle,
   FaSignOutAlt,
   FaUserCircle,
+  FaHistory
 } from "react-icons/fa"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
@@ -13,6 +14,7 @@ const menuItems = [
   { label: "Mes offres", to: "/hr/offers", icon: FaBriefcase },
   { label: "Créer une Offre", to: "/hr/create-offer", icon: FaPlusCircle },
   { label: "Demandes Accès", to: "/hr/access-requests", icon: FaFileAlt },
+  { label: "Historique", to: "/hr/history", icon: FaHistory },
 ]
 
 function HrSidebar({ isExpanded }) {

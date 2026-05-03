@@ -39,9 +39,13 @@ public class AwsSecretsManagerConfig {
                 .build();
     }
 
+
     @Bean(name = "awsSecretsLoader")
     public String loadSecrets(SecretsManagerClient secretsManagerClient) {
         log.info("Chargement des secrets depuis AWS Secrets Manager...");
+
+        System.out.println("Tentative de chargement du secret : " + dbPasswordSecretName);
+        System.out.println("Dans la région : " + awsRegion);
 
         // ── db_password ───────────────────────────────────────────────────
         try {

@@ -38,6 +38,11 @@ public class CandidatureHrResponse {
     // ─── Statut & Dates ─────────────────────────────────────
     private String status;
     private LocalDateTime dateSoumission;
+    private LocalDateTime dateDecision;
+
+    // ─── Historique ─────────────────────────────────────────
+    private String emailSentContent;
+    private String decisionMakerName;
 
     /** Id technique du fichier CV anonymisé (à utiliser pour télécharger le PDF censuré). */
     private Long cvFileId;

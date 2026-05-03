@@ -19,7 +19,7 @@ import ma.xproce.login_test.dto.CandidatureDtos.CandidatureHrResponse;
 import ma.xproce.login_test.dto.CandidatureDtos.CandidatureResponse;
 import ma.xproce.login_test.dto.CvDownloadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;  // ← corrigé (était lombok.Value)
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,6 +92,7 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
                             dto.setHasAccessToOriginalCv(true);
                             dto.setDemandeAccesId(demande.getId());
                         }
+                        dto.setAccessRequestStatus(demande.getStatus().name());
                     });
             return dto;
         }).toList();
@@ -195,28 +196,49 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
         Candidature candidature = candidatureRepository.findById(candidatureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidature non trouvee"));
 
-        boolean hasApprovedAccess = demandeAccesCvRepository
-                .findByCandidatureIdAndHrId(candidatureId, hr.getId())
-                .filter(demande -> demande.getStatus() == DemandeAccesCvStatus.APPROUVEE)
-                .isPresent();
+        // Règle métier : ACCEPTEE/REFUSEE nécessite un accès approuvé au CV original
+        if (newStatus == CandidatureStatus.ACCEPTEE || newStatus == CandidatureStatus.REFUSEE) {
+            boolean hasApprovedAccess = demandeAccesCvRepository
+                    .findByCandidatureIdAndHrId(candidatureId, hr.getId())
+                    .map(demande -> demande.getStatus() == DemandeAccesCvStatus.APPROUVEE)
+                    .orElse(false);
 
-        if (!hasApprovedAccess) {
-            throw new AccessDeniedException("Vous devez avoir une demande d'accès approuvée pour valider cette candidature");
+            if (!hasApprovedAccess) {
+                throw new AccessDeniedException(
+                        "Accès refusé : Vous devez obtenir l'approbation de l'administrateur pour accéder " +
+                                "au CV original avant de pouvoir accepter ou refuser ce candidat."
+                );
+            }
         }
 
         statusValidator.validateTransition(candidature.getStatus(), newStatus);
         candidature.setStatus(newStatus);
 
-        Candidature updated = candidatureRepository.save(candidature);
+        if (newStatus == CandidatureStatus.ACCEPTEE || newStatus == CandidatureStatus.REFUSEE) {
+            candidature.setDateDecision(LocalDateTime.now());
+            candidature.setDecisionMaker(hr);
+        }
 
-        CandidatureHrResponse dto = candidatureMapper.toHrResponse(updated);
-        dto.setHasAccessToOriginalCv(true);
+        Candidature saved = candidatureRepository.save(candidature);
+
+        CandidatureHrResponse dto = candidatureMapper.toHrResponse(saved);
         demandeAccesCvRepository.findByCandidatureIdAndHrId(candidatureId, hr.getId())
-                .ifPresent(demande -> dto.setDemandeAccesId(demande.getId()));
+                .ifPresent(demande -> {
+                    if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                        dto.setHasAccessToOriginalCv(true);
+                        dto.setDemandeAccesId(demande.getId());
+                    }
+                    dto.setAccessRequestStatus(demande.getStatus().name());
+                });
 
         return dto;
     }
 
+    /**
+     * Candidat — visualiser son propre CV.
+     * Mode S3 (prod) : retourne storageKey → le contrôleur génère un lien pré-signé S3
+     * Mode local (dev) : retourne les bytes directement
+     */
     @Override
     @Transactional(readOnly = true)
     public CvDownloadResponse getMyCv(Long candidatureId, String emailCandidat) {
@@ -232,16 +254,54 @@ public class CandidatureOffreService implements ICandidatureOffre_Service {
             throw new ResourceNotFoundException("Aucun fichier CV associé à cette candidature.");
         }
 
-        String storageKey = cvFile.getStorageKey();                    // ← corrigé (était "storageKey" indéfini)
+        String storageKey = cvFile.getStorageKey();
         String fileName = cvFile.getOriginalFileName() != null
                 ? cvFile.getOriginalFileName()
                 : "mon-cv.pdf";
 
         boolean isS3 = "s3".equals(storageType);
         return CvDownloadResponse.builder()
-                .content(isS3 ? null : cvFileStorageService.getFile(storageKey))  // ← corrigé (était cvContent)
+                .content(isS3 ? null : cvFileStorageService.getFile(storageKey))
                 .fileName(fileName)
                 .storageKey(isS3 ? storageKey : null)
                 .build();
+    }
+
+    /**
+     * Historique des décisions RH pour une offre.
+     * Retourne uniquement les candidatures ACCEPTÉES ou REFUSÉES, triées par date de décision desc.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CandidatureHrResponse> getHistoriqueDecisionsForOffre(Long offreId, String emailHr) {
+        user_entity hr = userRepository.findByEmail(emailHr)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur HR non trouve"));
+
+        offreRepository.findById(offreId)
+                .orElseThrow(() -> new ResourceNotFoundException("Offre non trouvee"));
+
+        List<Candidature> candidatures = candidatureRepository.findByOffreId(offreId).stream()
+                .filter(c -> c.getStatus() == CandidatureStatus.ACCEPTEE
+                        || c.getStatus() == CandidatureStatus.REFUSEE)
+                .sorted((c1, c2) -> {
+                    if (c1.getDateDecision() == null && c2.getDateDecision() == null) return 0;
+                    if (c1.getDateDecision() == null) return 1;
+                    if (c2.getDateDecision() == null) return -1;
+                    return c2.getDateDecision().compareTo(c1.getDateDecision());
+                })
+                .toList();
+
+        return candidatures.stream().map(c -> {
+            CandidatureHrResponse dto = candidatureMapper.toHrResponse(c);
+            demandeAccesCvRepository.findByCandidatureIdAndHrId(c.getId(), hr.getId())
+                    .ifPresent(demande -> {
+                        if (demande.getStatus() == DemandeAccesCvStatus.APPROUVEE) {
+                            dto.setHasAccessToOriginalCv(true);
+                            dto.setDemandeAccesId(demande.getId());
+                        }
+                        dto.setAccessRequestStatus(demande.getStatus().name());
+                    });
+            return dto;
+        }).toList();
     }
 }

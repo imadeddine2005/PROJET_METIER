@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from datetime import datetime, timedelta
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -181,3 +182,111 @@ CV:
         "explication": "Analyse échouée.",
         "toutes_categories": {}
     }
+
+def generate_email_with_llm(candidate_name: str, job_title: str, decision: str, language: str = "fr", reasons: str = "") -> str:
+    """
+    Génère un e-mail professionnel via l'IA en fonction de la décision (ACCEPTEE/REFUSEE).
+    Structure fixe avec marqueurs pour le parsing Java.
+    """
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%d/%m/%Y")
+
+    reasons_en = f"\n\nHere are the specific reasons for this decision (score analysis):\n{reasons}\nYou MUST include these reasons in your email inside a block marked exactly by ##REASONS_START## and ##REASONS_END##." if reasons else ""
+    reasons_block_en_positive = "\n##REASONS_START##\n[Briefly mention the positive reasons for this decision here]\n##REASONS_END##\n" if reasons else ""
+    reasons_block_en_negative = "\n##REASONS_START##\n[Briefly mention the constructive reasons for this decision here]\n##REASONS_END##\n" if reasons else ""
+
+    reasons_fr = f"\n\nVoici les raisons spécifiques de cette décision (analyse du score) :\n{reasons}\nTu DOIS inclure ces raisons dans ton e-mail à l'intérieur d'un bloc délimité exactement par les marqueurs ##REASONS_START## et ##REASONS_END##." if reasons else ""
+    reasons_block_fr_positive = "\n##REASONS_START##\n[Mentionne brièvement les raisons positives de cette décision ici]\n##REASONS_END##\n" if reasons else ""
+    reasons_block_fr_negative = "\n##REASONS_START##\n[Mentionne brièvement les raisons constructives de cette décision ici]\n##REASONS_END##\n" if reasons else ""
+
+    if language == "en":
+        if decision.upper() == "ACCEPTEE":
+            prompt = f"""You are an HR recruiter. Write a concise, warm acceptance email for {candidate_name} for the {job_title} position. Be direct, no repetition.{reasons_en}
+
+You MUST follow this EXACT structure (do not change the marker lines):
+
+Subject: [write subject here]
+
+[Write 2-3 short sentences: congratulate the candidate, and confirm the interview.]
+
+##INTERVIEW_START##
+Date: {tomorrow} at 10:00 AM
+Location: Company premises
+Duration: Approximately 1 hour
+##INTERVIEW_END##
+
+{reasons_block_en_positive}
+[Write 1 short closing sentence]
+
+[Signature]
+
+IMPORTANT:
+- Write STRICTLY IN ENGLISH.
+- Return ONLY the email text. No commentary, no prefix like "Here is the email:".
+- Do NOT change or omit the markers ##INTERVIEW_START##, ##INTERVIEW_END##, ##REASONS_START##, ##REASONS_END## if they are present."""
+
+        else:
+            prompt = f"""You are an HR recruiter. Write a concise, polite rejection email for {candidate_name} for the {job_title} position. Be direct, no repetition.{reasons_en}
+
+You MUST follow this EXACT structure:
+
+Subject: [write subject here]
+
+[Write 2-3 short sentences: thank the candidate, and inform them of the decision.]
+
+{reasons_block_en_negative}
+[Signature]
+
+IMPORTANT:
+- Write STRICTLY IN ENGLISH.
+- Return ONLY the email text. No commentary, no prefix.
+- Do NOT change or omit the markers ##REASONS_START## and ##REASONS_END## if they are present."""
+
+    else:
+        # French
+        if decision.upper() == "ACCEPTEE":
+            prompt = f"""Tu es un(e) recruteur/RH. Rédige un e-mail d'acceptation concis et chaleureux pour {candidate_name} pour le poste de {job_title}. Sois direct, pas de répétition.{reasons_fr}
+
+Tu DOIS suivre cette structure EXACTE (ne change pas les lignes marqueurs) :
+
+Objet : [écris l'objet ici]
+
+[Écris 2-3 phrases courtes : félicite le candidat, et confirme l'entretien.]
+
+##INTERVIEW_START##
+Date : {tomorrow} à 10h00
+Lieu : Locaux de l'entreprise
+Durée : Environ 1 heure
+##INTERVIEW_END##
+
+{reasons_block_fr_positive}
+[Écris 1 phrase de clôture courte]
+
+[Signature]
+
+IMPORTANT :
+- Rédige STRICTEMENT EN FRANÇAIS.
+- Retourne UNIQUEMENT le texte de l'e-mail. Pas de commentaire, pas de préfixe type "Voici l'e-mail :".
+- Ne modifie PAS et n'omets PAS les marqueurs ##INTERVIEW_START##, ##INTERVIEW_END##, ##REASONS_START##, ##REASONS_END## s'ils sont présents."""
+
+        else:
+            prompt = f"""Tu es un(e) recruteur/RH. Rédige un e-mail de refus concis et poli pour {candidate_name} pour le poste de {job_title}. Sois direct, pas de répétition.{reasons_fr}
+
+Tu DOIS suivre cette structure EXACTE :
+
+Objet : [écris l'objet ici]
+
+[Écris 2-3 phrases courtes : remercie le candidat, et informe-le de la décision.]
+
+{reasons_block_fr_negative}
+[Signature]
+
+IMPORTANT :
+- Rédige STRICTEMENT EN FRANÇAIS.
+- Retourne UNIQUEMENT le texte de l'e-mail. Pas de commentaire, pas de préfixe.
+- Ne modifie PAS et n'omets PAS les marqueurs ##REASONS_START## et ##REASONS_END## s'ils sont présents."""
+
+    try:
+        resp = call_groq_llm(prompt, max_tokens=500)
+        return resp.strip()
+    except Exception as e:
+        return f"Erreur lors de la génération de l'e-mail : {str(e)}"
