@@ -23,14 +23,47 @@ jobs:
 
             # Sauvegarder le commit avant pull
             BEFORE=$(git rev-parse HEAD)
-             # Mettre de côté les modifications locales protégées
-            git stash
+              # Sauvegarder les fichiers protégés dans un dossier temporaire
+            mkdir -p /tmp/aws-protected
+            cp Server/src/main/java/ma/xproce/login_test/config/AwsSecretsManagerConfig.java /tmp/aws-protected/
+            cp Server/src/main/java/ma/xproce/login_test/config/SecurityConfig.java /tmp/aws-protected/
+            cp Server/src/main/java/ma/xproce/login_test/web/CandidatureCandidate_Controller.java /tmp/aws-protected/
+            cp Server/src/main/resources/application.properties /tmp/aws-protected/
+
+            # Désactiver temporairement le skip-worktree pour laisser git pull passer
+            git update-index --no-skip-worktree \
+              Server/src/main/java/ma/xproce/login_test/config/AwsSecretsManagerConfig.java \
+              Server/src/main/java/ma/xproce/login_test/config/SecurityConfig.java \
+              Server/src/main/java/ma/xproce/login_test/web/CandidatureCandidate_Controller.java \
+              Server/src/main/resources/application.properties
+
+            # Restaurer les versions git pour permettre le pull
+            git checkout -- \
+              Server/src/main/java/ma/xproce/login_test/config/AwsSecretsManagerConfig.java \
+              Server/src/main/java/ma/xproce/login_test/config/SecurityConfig.java \
+              Server/src/main/java/ma/xproce/login_test/web/CandidatureCandidate_Controller.java \
+              Server/src/main/resources/application.properties
 
             # Récupérer les nouveaux commits
             git pull origin deploy/aws-backend
             
-            # Restaurer les fichiers locaux protégés (ils reprennent le dessus)
-            git stash pop
+            # Remettre les versions AWS par-dessus ce que git vient de tirer
+            cp /tmp/aws-protected/AwsSecretsManagerConfig.java \
+              Server/src/main/java/ma/xproce/login_test/config/
+            cp /tmp/aws-protected/SecurityConfig.java \
+              Server/src/main/java/ma/xproce/login_test/config/
+            cp /tmp/aws-protected/CandidatureCandidate_Controller.java \
+              Server/src/main/java/ma/xproce/login_test/web/
+            cp /tmp/aws-protected/application.properties \
+               Server/src/main/resources/
+
+            # Réactiver le skip-worktree
+            git update-index --skip-worktree \
+              Server/src/main/java/ma/xproce/login_test/config/AwsSecretsManagerConfig.java \
+              Server/src/main/java/ma/xproce/login_test/config/SecurityConfig.java \
+              Server/src/main/java/ma/xproce/login_test/web/CandidatureCandidate_Controller.java \
+              Server/src/main/resources/application.properties
+
             # Voir ce qui a changé entre avant et après le pull
             CHANGED=$(git diff $BEFORE HEAD --name-only)
             echo "Fichiers modifiés : $CHANGED"
