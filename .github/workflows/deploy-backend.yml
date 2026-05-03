@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - deploy/aws-backend
-    paths:
-      - 'Server/**'           # Si Server/ modifié
-      - 'TextExtraction&LLm/**' # Si LLM modifié
 
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy Backend to EC2 #2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -20,13 +20,25 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/smartrecruit-backend2
+
+            # Sauvegarder le commit avant pull
+            BEFORE=$(git rev-parse HEAD)
+
+            # Récupérer les nouveaux commits
             git pull origin deploy/aws-backend
 
-            # Rebuilder uniquement ce qui a changé
-            if git diff HEAD~1 --name-only | grep -q "Server/"; then
+            # Voir ce qui a changé entre avant et après le pull
+            CHANGED=$(git diff $BEFORE HEAD --name-only)
+            echo "Fichiers modifiés : $CHANGED"
+
+            # Rebuilder selon ce qui a changé
+            if echo "$CHANGED" | grep -q "Server/"; then
+              echo "→ Rebuild du serveur Spring Boot..."
               docker-compose -f docker-compose.backend.yml up -d --build server
             fi
-            if git diff HEAD~1 --name-only | grep -q "TextExtraction"; then
+
+            if echo "$CHANGED" | grep -q "TextExtraction"; then
+              echo "→ Rebuild du service LLM..."
               docker-compose -f docker-compose.backend.yml up -d --build llm
             fi
 
