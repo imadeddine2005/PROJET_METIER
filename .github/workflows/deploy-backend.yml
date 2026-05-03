@@ -23,10 +23,14 @@ jobs:
 
             # Sauvegarder le commit avant pull
             BEFORE=$(git rev-parse HEAD)
+             # Mettre de côté les modifications locales protégées
+            git stash
 
             # Récupérer les nouveaux commits
             git pull origin deploy/aws-backend
-
+            
+            # Restaurer les fichiers locaux protégés (ils reprennent le dessus)
+            git stash pop
             # Voir ce qui a changé entre avant et après le pull
             CHANGED=$(git diff $BEFORE HEAD --name-only)
             echo "Fichiers modifiés : $CHANGED"
