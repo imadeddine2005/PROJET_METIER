@@ -58,6 +58,15 @@ public class Candidature {
     @Column(columnDefinition = "TEXT")
     private String diplomes;
 
+    private LocalDateTime dateDecision;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decision_maker_id")
+    private user_entity decisionMaker;
+
+    @Column(columnDefinition = "TEXT")
+    private String emailSentContent;
+
     @Enumerated(EnumType.STRING)
     private CandidatureStatus status = CandidatureStatus.EN_COURS;
 

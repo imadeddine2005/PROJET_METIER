@@ -46,6 +46,7 @@ public class LoginTestApplication implements CommandLineRunner {
         createUserIfNotExists("hr2@gmail.com", "HR2 Manager", "hrhr1234", "ROLE_HR");
         createUserIfNotExists("candidat@gmail.com", "Candidat User", "candidat123", "ROLE_CANDIDAT");
         createUserIfNotExists("candidat2@gmail.com", "Candidat User", "candidat123", "ROLE_CANDIDAT");
+        createUserIfNotExists("okratiimad9@gmail.com", "imad eddine", "imadimad", "ROLE_CANDIDAT");
         // Créer les offres (exemple)
         user_entity hr1 = userReposetory.findByEmail("hr@gmail.com").orElse(null);
         user_entity hr2 = userReposetory.findByEmail("hr2@gmail.com").orElse(null);

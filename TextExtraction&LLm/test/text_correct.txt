@@ -1,0 +1,54 @@
+IMAD EDDINE OUKRATI
+GitHub
+Résumé
+LinkedIn
++212 652571989
+imadeddineoukrati25@gmail.com
+Casablanca
+Étudiant ingénieur en Intelligence Artificielle et Génie Informatique à l’ENSAM Casablanca, pas
+sionné par le développement web full-stack et les technologies temps réel. Expérience confirmée dans
+la conception et le développement d’applications web modernes, avec une forte capacité d’adaptation
+et un esprit d’équipe développé en environnement professionnel.
+Expérience Professionnelle
+• JESA (Jacobs Engineering SA) — Stage d’Initiation Développeur Full-Stack (2 mois)
+Juillet–Septembre 2025
+Casablanca, Maroc
+— Développement d’une plateforme web interne de gestion des enchères pour équipements IT dé
+classés
+— Conception architecture complète et design UI/UX (Figma) avec implémentation MERN Stack
+— Intégration temps réel (WebSocket/Socket.IO), authentification Microsoft SSO (Azure AD) et
+validation robuste (Zod)
+— Gestion uploads d’images (Multer), automatisation (Cron jobs) et dashboard administratif avec
+KPIs temps réel
+— Stack : React, Tailwind CSS, Node.js, Express.js, MongoDB, Socket.IO, Azure AD
+Formation
+• ENSAM Casablanca, Maroc
+Cycle Ingénieur en Intelligence Artificielle et Génie Informatique
+• ENSAM Casablanca, Maroc
+Cycle Préparatoire Intégré
+• Lycée Qualifiant Al-Farabi, Maroc
+Baccalauréat en Sciences Physiques
+2024–2027
+2022–2024
+2021–2022
+1
+Compétences Techniques
+• Langages : JavaScript (ES6+), Python, C, Java, PHP
+• Backend : Spring Boot, Spring Security, Spring Data JPA, Node.js, Express.js, Django
+• Frontend : React, Thymeleaf, Tailwind CSS, Bootstrap, Socket.IO, Vite, Figma, Responsive
+Design
+• Bases de données : MySQL, MongoDB, SQLite, Oracle
+• Cloud & Auth : Azure AD (Microsoft SSO), Spring Security, JWT, Git, GitHub
+• Outils : Maven, Zod, Postman, UML, Merise, WebSocket, Multer, Cron jobs, Lombok
+Projets
+• Plateforme d’Enchères Temps Réel (JESA_Auction)
+Plateforme web interne pour enchères d’équipements IT avec communication temps réel (Web
+Socket), authentification Microsoft SSO, validation Zod, gestion d’images multiples et
+dashboard administratif. MERN Stack + Tailwind CSS.
+• Système de Gestion de Stages (InternshipManagement) : Application backend JEE avec
+Spring Boot 3.5, Spring Security + JWT, Spring Data JPA, MySQL, authentification multi
+rôles et gestion de fichiers. Maven + Lombok + Thymeleaf.
+• Application E-learning Full Stack : Plateforme complète avec React et Django incluant
+gestion de cours, authentification et suivi de progression.
+Langues
+• Français : Courant • Anglais : Courant • Arabe : Langue maternelle

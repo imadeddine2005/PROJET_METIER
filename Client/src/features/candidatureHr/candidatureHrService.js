@@ -60,13 +60,37 @@ const getOriginalCvPdf = async (demandeId) => {
     return response.data;
 };
 
+// Générer un e-mail via l'IA
+const generateEmail = async (candidatureId, language) => {
+  const config = getAuthConfig();
+  const response = await axios.post(`${API_URL}/${candidatureId}/generate-email`, { language }, config);
+  return response.data;
+};
+
+// Envoyer l'e-mail
+const sendEmail = async (candidatureId, subject, body) => {
+  const config = getAuthConfig();
+  const response = await axios.post(`${API_URL}/${candidatureId}/send-email`, { subject, body }, config);
+  return response.data;
+};
+
+// Obtenir l'historique des décisions pour une offre
+const getHistoriqueDecisionsForOffer = async (offreId) => {
+  const config = getAuthConfig();
+  const response = await axios.get(`${API_URL}/${offreId}/history`, config);
+  return response.data;
+};
+
 const candidatureHrService = {
   getCandidaturesForOffer,
+  getHistoriqueDecisionsForOffer,
   updateCandidatureStatus,
   requestCvAccess,
   getMyAccessRequests,
   getAnonymizedCvPdf,
-  getOriginalCvPdf
+  getOriginalCvPdf,
+  generateEmail,
+  sendEmail
 };
 
 export default candidatureHrService;

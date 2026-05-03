@@ -19,6 +19,9 @@ public interface ICandidatureOffre_Service {
     // Candidat — lister toutes ses candidatures
     List<CandidatureResponse> listMyCandidatures(String emailCandidat);
 
+    // Pour l'historique RH
+    List<CandidatureHrResponse> getHistoriqueDecisionsForOffre(Long offreId, String emailHr);
+
     // HR — changer le statut d'une candidature (retourne la vue RH, pas la vue candidat)
     CandidatureHrResponse updateCandidatureStatus(Long candidatureId, CandidatureStatus newStatus, String emailHr);
 

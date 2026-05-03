@@ -47,6 +47,13 @@ const getMyOffres = async () => {
   return response.data.data || response.data;
 };
 
+// HR - Get all offers (requires auth)
+const getAllOffresHr = async () => {
+  const config = getAuthConfig();
+  const response = await axios.get(`${HR_API_URL}/all`, config);
+  return response.data.data || response.data;
+};
+
 // HR - Create new offer (requires auth)
 const createOffre = async (offreData) => {
   const config = getAuthConfig();
@@ -73,6 +80,7 @@ const offreService = {
   getOffreByIdCandidate,
   getOffreById,
   getMyOffres,
+  getAllOffresHr,
   createOffre,
   updateOffre,
   deleteOffre,

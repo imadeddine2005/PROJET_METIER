@@ -11,7 +11,25 @@ const initialState = {
   message: "",
   isUpdatingStatus: false,
   isRequestingAccess: false,
+  isGeneratingEmail: false,
+  isSendingEmail: false,
 };
+
+// Obtenir l'historique des décisions pour l'offre sélectionnée
+export const fetchHistoriqueForOffer = createAsyncThunk(
+  "candidatureHr/fetchHistoriqueForOffer",
+  async (offreId, thunkAPI) => {
+    try {
+      return await candidatureHrService.getHistoriqueDecisionsForOffer(offreId);
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
 
 // Obtenir toutes les candidatures pour l'offre sélectionnée
 export const fetchCandidaturesForOffer = createAsyncThunk(
@@ -76,6 +94,39 @@ export const fetchMyAccessRequests = createAsyncThunk(
     }
   }
 );
+
+// Générer l'e-mail via IA
+export const generateEmailThunk = createAsyncThunk(
+  "candidatureHr/generateEmail",
+  async ({ candidatureId, language }, thunkAPI) => {
+    try {
+      return await candidatureHrService.generateEmail(candidatureId, language);
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Envoyer l'e-mail
+export const sendEmailThunk = createAsyncThunk(
+  "candidatureHr/sendEmail",
+  async ({ candidatureId, subject, body }, thunkAPI) => {
+    try {
+      return await candidatureHrService.sendEmail(candidatureId, subject, body);
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 export const candidatureHrSlice = createSlice({
   name: "candidatureHr",
   initialState,
@@ -87,6 +138,8 @@ export const candidatureHrSlice = createSlice({
       state.message = "";
       state.isUpdatingStatus = false;
       state.isRequestingAccess = false;
+      state.isGeneratingEmail = false;
+      state.isSendingEmail = false;
     },
     clearApplicants: (state) => {
       state.applicants = [];
@@ -104,6 +157,20 @@ export const candidatureHrSlice = createSlice({
         state.applicants = action.payload?.data || action.payload; // Ajuster selon la structure de l'API ApiResponse
       })
       .addCase(fetchCandidaturesForOffer.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      // Fetch Historique
+      .addCase(fetchHistoriqueForOffer.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchHistoriqueForOffer.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.applicants = action.payload?.data || action.payload;
+      })
+      .addCase(fetchHistoriqueForOffer.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
@@ -149,6 +216,28 @@ export const candidatureHrSlice = createSlice({
         state.isLoadingRequests = false;
         state.isError = true;
         state.message = action.payload;
+      })
+      // Generate Email
+      .addCase(generateEmailThunk.pending, (state) => {
+        state.isGeneratingEmail = true;
+      })
+      .addCase(generateEmailThunk.fulfilled, (state) => {
+        state.isGeneratingEmail = false;
+      })
+      .addCase(generateEmailThunk.rejected, (state, action) => {
+        state.isGeneratingEmail = false;
+        // Laissé à la gestion locale
+      })
+      // Send Email
+      .addCase(sendEmailThunk.pending, (state) => {
+        state.isSendingEmail = true;
+      })
+      .addCase(sendEmailThunk.fulfilled, (state) => {
+        state.isSendingEmail = false;
+      })
+      .addCase(sendEmailThunk.rejected, (state, action) => {
+        state.isSendingEmail = false;
+        // Laissé à la gestion locale
       });
   },
 });
