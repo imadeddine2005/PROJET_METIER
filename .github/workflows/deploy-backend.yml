@@ -19,7 +19,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/smartrecruit-backend
+            cd ~/smartrecruit-backend2
             git pull origin deploy/aws-backend
 
             # Rebuilder uniquement ce qui a changé
