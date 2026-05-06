@@ -122,12 +122,12 @@ def extract_text(file_path: str) -> str:
                 text_parts.append(native_text)
                 print(f"  Page {page_number + 1} : Texte natif (mode colonnes) extrait ({len(native_text)} caractères)")
             else:
-                # 3. Mode OCR (Fallback)
-                print(f"  Page {page_number + 1} : Image détectée, OCR Haute Qualité en cours...")
-                ocr_text = _ocr_pdf_page_hq(page)
-                if ocr_text:
-                    text_parts.append(ocr_text)
-                    print(f"  Page {page_number + 1} : OCR OK ({len(ocr_text)} caractères)")
+                # 3. Mode OCR (Tesseract) pour les CVs scannés
+                print(f"  Page {page_number + 1} : Image détectée, extraction Tesseract OCR en cours...")
+                ocr_text_tess = _ocr_pdf_page_hq(page, file_path, page_number)
+                if ocr_text_tess:
+                    text_parts.append(ocr_text_tess)
+                    print(f"  Page {page_number + 1} : Tesseract OK ({len(ocr_text_tess)} caractères)")
                 else:
                     print(f"  Page {page_number + 1} : Page complètement vide ou illisible")
                     
@@ -144,9 +144,12 @@ def extract_text(file_path: str) -> str:
         
     return final_text
 
-def _ocr_pdf_page_hq(page: fitz.Page) -> str:
-    """Réalise un OCR Haute Définition équilibré (Version Finale)"""
+def _ocr_pdf_page_hq(page: fitz.Page, file_path: str, page_number: int) -> str:
+    """Réalise un OCR Haute Définition équilibré (Version Finale avec SPATIAL CACHING)"""
     try:
+        from pytesseract import Output
+        from extraction.spatial_cache import OCR_SPATIAL_CACHE, get_cache_key
+        
         # 1. Résolution de haute qualité (Zoom 3.5x = excellent équilibre netteté/bruit)
         mat = fitz.Matrix(3.5, 3.5)
         pix = page.get_pixmap(matrix=mat)
@@ -160,22 +163,70 @@ def _ocr_pdf_page_hq(page: fitz.Page) -> str:
         img = ImageOps.autocontrast(img)
         
         # 3. Masque de netteté (Unsharp Mask) : renforce les détails des lettres
-        # Cela aide énormément pour lire le "@" et les chiffres
         img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
         
         # 4. Léger débruitage
         img = img.filter(ImageFilter.MedianFilter(size=3))
         
-        # --oem 1 : LSTM (Moteur intelligent)
-        # --psm 1 : Détection colonnes (sidebar) + Orientation
+        # Extraction avec Coordonnées
         custom_config = r'--oem 1 --psm 1'
+        data = pytesseract.image_to_data(img, lang="fra+eng", config=custom_config, output_type=Output.DICT)
         
-        text = pytesseract.image_to_string(
-            img,
-            lang="fra+eng",   
-            config=custom_config
-        )
-        return text.strip()
+        scale_x = page.rect.width / pix.width
+        scale_y = page.rect.height / pix.height
+        
+        words_data = []
+        lines = []
+        current_line = []
+        last_line_num = -1
+        last_block_num = -1
+        
+        for i, word in enumerate(data['text']):
+            word_str = str(word).strip()
+            if not word_str: continue
+            
+            block_num = data['block_num'][i]
+            line_num = data['line_num'][i]
+            
+            if line_num != last_line_num or block_num != last_block_num:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = []
+                last_line_num = line_num
+                last_block_num = block_num
+                
+            x = data['left'][i]
+            y = data['top'][i]
+            w = data['width'][i]
+            h = data['height'][i]
+            
+            fx0 = x * scale_x
+            fy0 = y * scale_y
+            fx1 = (x + w) * scale_x
+            fy1 = (y + h) * scale_y
+            
+            word_info = {
+                "text": word_str,
+                "rect": fitz.Rect(fx0, fy0, fx1, fy1)
+            }
+            current_line.append(word_info)
+            words_data.append(word_info)
+            
+        if current_line:
+            lines.append(current_line)
+            
+        # Reconstruction du texte
+        text_parts = []
+        for line in lines:
+            text_parts.append(" ".join([w["text"] for w in line]))
+            
+        final_text = "\n".join(text_parts)
+        
+        # SPATIAL CACHING : On stocke les coordonnées pour redactor.py !
+        cache_key = get_cache_key(file_path, page_number)
+        OCR_SPATIAL_CACHE[cache_key] = words_data
+        
+        return final_text.strip()
     except Exception as e:
         print(f"Erreur interne dans Tesseract OCR: {str(e)}")
         return ""
