@@ -1,12 +1,10 @@
 name: Deploy Frontend (EC2 #1)
-
 on:
   push:
     branches:
       - deploy/aws-frontend
     paths:
-      - 'Client/**'        # Se déclenche uniquement si Client/ est modifié
-
+      - 'Client/**'
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -19,6 +17,27 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/smartrecruit-frontend
+
+            # S'assurer qu'on est sur la bonne branche
+            git checkout deploy/aws-frontend
+
+            # Sauvegarder le commit avant pull
+            BEFORE=$(git rev-parse HEAD)
+
+            # Tirer les derniers changements
             git pull origin deploy/aws-frontend
-            docker-compose -f docker-compose.frontend.yml up -d --build
+
+            # Voir ce qui a changé
+            CHANGED=$(git diff $BEFORE HEAD --name-only)
+            echo "Fichiers modifiés : $CHANGED"
+
+            # Rebuilder uniquement si Client/ a changé
+            if echo "$CHANGED" | grep -q "Client/"; then
+              echo "→ Rebuild du frontend..."
+              docker-compose -f docker-compose.frontend.yml down
+              docker-compose -f docker-compose.frontend.yml up -d --build --no-cache
+            else
+              echo "→ Aucun changement dans Client/, pas de rebuild."
+            fi
+
             docker-compose -f docker-compose.frontend.yml ps
