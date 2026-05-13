@@ -21,7 +21,7 @@ import OffreCandidatures from "./EspaceHr/pages/OffreCandidatures"
 import Myjob from "./EspaceCandidate/pages/Myjob"
 import ApplyToOffer from "./EspaceCandidate/pages/ApplyToOffer"
 import PublicLayout from "./layouts/PublicLayout"
-
+import AuditLogs from "./EspaceAdmin/pages/AuditLogs"
 
 function App() {
   return (
@@ -39,6 +39,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="history" element={<AdminHistory />} />
+              <Route path="audit" element={<AuditLogs />} />
             </Route>
           </Route>
 

@@ -53,13 +53,26 @@ const getAdminCvPdf = async (demandeId) => {
     const response = await axios.get(`${API_URL}/${demandeId}/cv`, config);
     return response.data;
 };
+const getAuditLogs = async () => {
+  const config = getAuthConfig();
+  const response = await axios.get('/api/audit/logs', config);
+  return response.data;
+};
+
+const verifyAuditIntegrity = async () => {
+  const config = getAuthConfig();
+  const response = await axios.get('/api/audit/verify', config);
+  return response.data;
+};
 
 const adminService = {
   getPendingRequests,
   getHistoryRequests,
   approveRequest,
   rejectRequest,
-  getAdminCvPdf
+  getAdminCvPdf,
+  getAuditLogs,        // ← ajouter
+  verifyAuditIntegrity // ← ajouter
 };
 
 export default adminService;
