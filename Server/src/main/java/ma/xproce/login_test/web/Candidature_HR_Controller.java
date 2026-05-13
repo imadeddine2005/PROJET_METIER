@@ -15,16 +15,18 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import ma.xproce.login_test.Services.AuditService;
 import java.util.List;
 
 @RestController
 @RequestMapping("/hr/api/candidatures")
 public class Candidature_HR_Controller {
     private final ICandidatureOffre_Service candidatureOffreService;
+    private final AuditService auditService;
 
-    public Candidature_HR_Controller(ICandidatureOffre_Service candidatureOffreService) {
+    public Candidature_HR_Controller(ICandidatureOffre_Service candidatureOffreService, AuditService auditService) {
         this.candidatureOffreService = candidatureOffreService;
+	this.auditService = auditService;
     }
 
     // HR seulement — voir candidatures d'UNE offre (sans donnees sensibles candidat)
@@ -51,6 +53,10 @@ public class Candidature_HR_Controller {
             request.getNewStatus(),
             auth.getName()
         );
+
+	auditService.log(auth.getName(), null, "DECISION_CANDIDATURE",
+        String.valueOf(candidatureId), "SUCCESS",
+        "Nouveau statut : " + request.getNewStatus());
         return ResponseEntity.ok(ApiResponse.success("Statut mis à jour", response));
     }
 

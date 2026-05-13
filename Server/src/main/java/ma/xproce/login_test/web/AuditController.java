@@ -72,10 +72,10 @@ public class AuditController {
     /**
      * GET /api/audit/logs/user/{email} — Logs d'un utilisateur
      * "Quelles décisions ont été prises sur ce candidat ?"
-     * Le RH ou l'Admin peut tracer toutes les actions liées à un email spécifique.
+     * L'Admin seul peut tracer toutes les actions liées à un email spécifique.
      */
     @GetMapping("/logs/user/{email}")
-    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AuditLog>>> getLogsByUser(
             @PathVariable String email) {
 

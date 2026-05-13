@@ -21,7 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
+import ma.xproce.login_test.Services.AuditService;
 import java.util.Collections;
 
 @RestController
@@ -32,15 +32,18 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final RoleReposetory roleReposetory;
     private final JwtGenerator jwtGenerator;
+    private final AuditService auditService;
 
     public AuthController(PasswordEncoder passwordEncoder, UserReposetory userReposetory,
                           AuthenticationManager authenticationManager, RoleReposetory roleReposetory,
-                          JwtGenerator jwtGenerator) {
+                          JwtGenerator jwtGenerator, AuditService auditService) {
         this.passwordEncoder = passwordEncoder;
         this.userReposetory = userReposetory;
         this.authenticationManager = authenticationManager;
         this.roleReposetory = roleReposetory;
         this.jwtGenerator = jwtGenerator;
+        this.auditService = auditService;
+}
     }
 
     @PostMapping("/login")
@@ -68,6 +71,10 @@ public class AuthController {
         response.setName(user.getName());
         response.setRoles(roleNames);
         
+
+	auditService.log(user.getEmail(), user.getId(), "LOGIN", null, "SUCCESS",
+        "Connexion depuis rôles : " + String.join(", ", roleNames));
+
         return ResponseEntity.ok(ApiResponse.success("Login success", response));
     }
 
@@ -86,6 +93,10 @@ public class AuthController {
         user.setRoles(Collections.singletonList(role));
 
         userReposetory.save(user);
+
+
+	auditService.log(user.getEmail(), user.getId(), "REGISTER", null, "SUCCESS",
+        "Nouvel utilisateur enregistré avec le rôle ROLE_CANDIDAT");
         return new ResponseEntity<>(ApiResponse.success("Registration success", RegisterResponseDto.of(register.getEmail())), HttpStatus.CREATED);
     }
 }

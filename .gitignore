@@ -9,3 +9,4 @@ docker-compose.frontend.yml
 *.save
 *.bak
 *.orig
+smartrecruit-backend2/

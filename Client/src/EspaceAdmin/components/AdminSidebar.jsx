@@ -1,4 +1,4 @@
-import { FaShieldAlt, FaTasks, FaSignOutAlt, FaHistory } from "react-icons/fa"
+import { FaShieldAlt, FaTasks, FaSignOutAlt, FaHistory, FaListAlt } from "react-icons/fa"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { logout, reset } from "../../features/auth/authSlice"
@@ -6,6 +6,7 @@ import { logout, reset } from "../../features/auth/authSlice"
 const menuItems = [
   { label: "Gestion des Accès", to: "/admin", icon: FaTasks },
   { label: "Historique", to: "/admin/history", icon: FaHistory },
+  { label: "Audit Trail",       to: "/admin/audit", icon: FaShieldAlt }, // ← ajouter
 ]
 
 function AdminSidebar({ isExpanded }) {

@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import ma.xproce.login_test.Services.AuditService;
 import java.util.List;
 
 @RestController
@@ -18,9 +18,11 @@ import java.util.List;
 public class DemandeAccesCvAdmin_Controller {
 
     private final IDemandeAccesCvService demandeService;
+    private final AuditService auditService;
 
-    public DemandeAccesCvAdmin_Controller(IDemandeAccesCvService demandeService) {
+    public DemandeAccesCvAdmin_Controller(IDemandeAccesCvService demandeService, AuditService auditService) {
         this.demandeService = demandeService;
+        this.auditService = auditService;
     }
 
     // Admin voit demandes EN_ATTENTE
@@ -48,6 +50,10 @@ public class DemandeAccesCvAdmin_Controller {
             Authentication auth
     ) {
         DemandeAccesCvAdminResponse response = demandeService.approveDemande(demandeId, auth.getName(), decisionNote);
+
+	auditService.log(auth.getName(), null, "DEMANDE_ACCES_APPROUVEE",
+        String.valueOf(demandeId), "SUCCESS",
+        "Note : " + decisionNote);
         return ResponseEntity.ok(ApiResponse.success("Demande approuvée", response));
     }
 
@@ -60,7 +66,11 @@ public class DemandeAccesCvAdmin_Controller {
             Authentication auth
     ) {
         DemandeAccesCvAdminResponse response = demandeService.rejectDemande(demandeId, auth.getName(), decisionNote);
-        return ResponseEntity.ok(ApiResponse.success("Demande rejetée", response));
+        
+	auditService.log(auth.getName(), null, "DEMANDE_ACCES_REFUSEE",
+        String.valueOf(demandeId), "SUCCESS",
+        "Note : " + decisionNote);
+	return ResponseEntity.ok(ApiResponse.success("Demande rejetée", response));
     }
 
     // Admin télécharge le CV pour consultation
