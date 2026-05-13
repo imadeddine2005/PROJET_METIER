@@ -6,3 +6,6 @@ smartrecruit-key.pem
 docker-compose.prod.yml
 /Server/src/main/resources/application.properties
 docker-compose.frontend.yml
+*.save
+*.bak
+*.orig
