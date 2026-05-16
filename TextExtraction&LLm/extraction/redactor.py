@@ -2,6 +2,8 @@ import fitz
 import os
 import io
 import pytesseract
+import cv2
+import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
 
@@ -169,6 +171,66 @@ def _find_rects_in_image_page(page, phrases: list, file_path: str, page_number: 
         return all_rects
 
 
+def _find_face_rects(page) -> list:
+    """
+    Détecte les visages sur une page PDF (utilisé pour caviarder les photos de profil).
+    Retourne une liste de fitz.Rect.
+    """
+    rects = []
+    try:
+        # 1. Rendre la page en image haute résolution
+        mat = fitz.Matrix(3.0, 3.0)
+        pix = page.get_pixmap(matrix=mat)
+        
+        # 2. Convertir Pixmap en tableau NumPy (format OpenCV)
+        img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+        
+        # 3. Convertir en niveaux de gris
+        if pix.n == 4: # RGBA
+            img_gray = cv2.cvtColor(img_array, cv2.COLOR_RGBA2GRAY)
+        elif pix.n == 3: # RGB
+            img_gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+        else:
+            img_gray = img_array
+            
+        # 4. Charger le classifieur Haar Cascade pour les visages de face
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        
+        # 5. Détecter les visages (minSize garantit qu'on ne détecte pas de minuscules icônes)
+        faces = face_cascade.detectMultiScale(
+            img_gray, 
+            scaleFactor=1.1, 
+            minNeighbors=5, 
+            minSize=(50, 50)
+        )
+        
+        # 6. Re-projeter les coordonnées pixels vers PDF
+        scale_x = page.rect.width / pix.width
+        scale_y = page.rect.height / pix.height
+        
+        for (x, y, w, h) in faces:
+            # On ajoute un peu de marge (padding) autour du visage pour cacher toute la tête
+            marge = int(w * 0.2)
+            x_start = max(0, x - marge)
+            y_start = max(0, y - marge)
+            x_end = min(pix.width, x + w + marge)
+            y_end = min(pix.height, y + h + marge)
+            
+            rect = fitz.Rect(
+                x_start * scale_x, 
+                y_start * scale_y, 
+                x_end * scale_x, 
+                y_end * scale_y
+            )
+            rects.append(rect)
+            
+    except Exception as e:
+        print(f"  [WARN] Erreur lors de la détection faciale : {e}")
+        
+    return rects
+
+
 def redact_pdf(original_pdf_path: str, sensitive_phrases: list, output_pdf_path: str):
     """
     Redaction intelligente supportant TXT et IMG. Utilise le Spatial Cache pour les IMG.
@@ -188,6 +250,13 @@ def redact_pdf(original_pdf_path: str, sensitive_phrases: list, output_pdf_path:
                 sensitive_rects = _find_rects_in_image_page(page, sensitive_phrases, original_pdf_path, page_number)
             else:
                 sensitive_rects = _find_rects_in_native_pdf(page, sensitive_phrases)
+
+            # --- NOUVEAU : Détection et ajout des visages ---
+            face_rects = _find_face_rects(page)
+            if face_rects:
+                print(f"  [VISION] {len(face_rects)} visage(s) détecté(s) sur la page {page_number + 1}.")
+                sensitive_rects.extend(face_rects)
+            # ------------------------------------------------
 
             # 3. Appliquer les masquages
             if sensitive_rects:

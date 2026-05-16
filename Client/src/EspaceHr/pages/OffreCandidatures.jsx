@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCandidaturesForOffer, requestCvAccess, updateCandidatureStatus, generateEmailThunk, sendEmailThunk } from "../../features/candidatureHr/candidatureHrSlice";
 import candidatureHrService from "../../features/candidatureHr/candidatureHrService";
-import { FaArrowLeft, FaFilePdf, FaLock, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaUnlock, FaUsers, FaChevronDown, FaChevronUp, FaRobot, FaBriefcase, FaGraduationCap, FaEnvelope, FaPaperPlane } from "react-icons/fa";
+import { FaArrowLeft, FaFilePdf, FaLock, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaUnlock, FaUsers, FaChevronDown, FaChevronUp, FaRobot, FaBriefcase, FaGraduationCap, FaEnvelope, FaPaperPlane, FaGithub, FaSpinner } from "react-icons/fa";
 import Spinner from "../../components/Spinner";
 import { toast } from "react-toastify";
 import DecisionConfirmationModal from "../components/DecisionConfirmationModal";
@@ -33,6 +33,14 @@ function OffreCandidatures() {
     subject: "Mise à jour concernant votre candidature",
     body: "",
     language: "fr"
+  });
+
+  const [githubModal, setGithubModal] = useState({
+    isOpen: false,
+    isLoading: false,
+    data: null,
+    error: null,
+    message: null
   });
 
   const { isGeneratingEmail, isSendingEmail } = useSelector((state) => state.candidatureHr);
@@ -74,6 +82,43 @@ function OffreCandidatures() {
       window.open(url, "_blank");
     } catch (error) {
       toast.error("Impossible de télécharger le CV original.", { toastId: 'orig-cv-err' });
+    }
+  };
+
+  const handleExploreGithub = async (candidat) => {
+    try {
+      setGithubModal({ isOpen: true, isLoading: true, data: null, error: null, message: null });
+      
+      let blob;
+      if (candidat.hasAccessToOriginalCv && candidat.demandeAccesId) {
+        blob = await candidatureHrService.getOriginalCvPdf(candidat.demandeAccesId);
+      } else {
+        blob = await candidatureHrService.getAnonymizedCvPdf(candidat.id);
+      }
+
+      const formData = new FormData();
+      formData.append("file", blob, "cv.pdf");
+
+      const response = await fetch("http://localhost:5001/api/analyze-github", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erreur serveur");
+      }
+
+      if (result.found && result.data) {
+        setGithubModal({ isOpen: true, isLoading: false, data: result.data, error: null, message: null });
+      } else {
+        setGithubModal({ isOpen: true, isLoading: false, data: null, error: null, message: result.message });
+      }
+
+    } catch (error) {
+      console.error(error);
+      setGithubModal({ isOpen: true, isLoading: false, data: null, error: error.message || "Erreur lors de l'analyse", message: null });
     }
   };
 
@@ -381,6 +426,23 @@ function OffreCandidatures() {
                               <FaFilePdf className="text-red-400" />
                             </button>
 
+                            <button 
+                              onClick={() => handleExploreGithub(candidat)}
+                              disabled={!candidat.hasAccessToOriginalCv}
+                              title={!candidat.hasAccessToOriginalCv ? "Veuillez débloquer le CV original pour accéder au GitHub" : "Explorer le profil GitHub"}
+                              className={`flex justify-between items-center w-full px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm border-2 ${
+                                !candidat.hasAccessToOriginalCv 
+                                ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-80" 
+                                : "bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200 active:scale-95 border-transparent"
+                              }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <FaGithub className={!candidat.hasAccessToOriginalCv ? "text-slate-300" : "text-slate-400"} /> 
+                                Explorer GitHub
+                              </span>
+                              {!candidat.hasAccessToOriginalCv && <FaLock className="text-slate-300 h-3 w-3" />}
+                            </button>
+
                             {candidat.hasAccessToOriginalCv ? (
                               <button 
                                 onClick={() => openOriginalCv(candidat.demandeAccesId)}
@@ -593,6 +655,117 @@ function OffreCandidatures() {
                 {isSendingEmail ? 'Envoi...' : 'Envoyer l\'E-mail'}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* GitHub Modal */}
+      {githubModal.isOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white rounded-[1.5rem] p-6 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-slate-800 to-slate-600"></div>
+            
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 border border-slate-200">
+                  <FaGithub className="h-5 w-5 text-slate-800" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-display font-bold text-slate-900 leading-tight">Aperçu GitHub</h3>
+                  <p className="text-xs font-medium text-slate-500">Profil du candidat</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setGithubModal({ ...githubModal, isOpen: false })}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <FaTimesCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            {githubModal.isLoading ? (
+              <div className="py-8 flex flex-col items-center justify-center text-slate-500">
+                <FaSpinner className="h-8 w-8 animate-spin text-slate-300 mb-3" />
+                <p className="text-sm font-medium animate-pulse">Extraction et analyse en cours...</p>
+              </div>
+            ) : githubModal.error ? (
+              <div className="py-6 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 mb-3">
+                  <FaTimesCircle className="h-6 w-6 text-red-500" />
+                </div>
+                <h4 className="text-base font-bold text-slate-800 mb-1">Erreur</h4>
+                <p className="text-slate-600 text-xs">{githubModal.error}</p>
+              </div>
+            ) : githubModal.message ? (
+              <div className="py-6 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-50 mb-3">
+                  <FaEye className="h-6 w-6 text-yellow-500" />
+                </div>
+                <h4 className="text-base font-bold text-slate-800 mb-1">Information</h4>
+                <p className="text-slate-600 text-xs">{githubModal.message}</p>
+              </div>
+            ) : githubModal.data ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  {githubModal.data.avatar_url ? (
+                    <img src={githubModal.data.avatar_url} alt="Avatar" className="w-12 h-12 rounded-full shadow-sm" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                      <FaGithub className="w-6 h-6 text-slate-400" />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-base leading-tight">@{githubModal.data.username}</h4>
+                    <a href={githubModal.data.url} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700 text-xs font-medium hover:underline">
+                      Voir le profil sur GitHub
+                    </a>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <span className="block text-xl font-bold text-slate-800">{githubModal.data.public_repos}</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dépôts</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <span className="block text-xl font-bold text-slate-800">{githubModal.data.followers}</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Abonnés</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bio</h5>
+                  <p className="text-xs text-slate-700 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100 line-clamp-2">
+                    "{githubModal.data.bio}"
+                  </p>
+                </div>
+
+                {githubModal.data.top_languages && githubModal.data.top_languages.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Langages principaux</h5>
+                    <div className="flex flex-wrap gap-1.5">
+                      {githubModal.data.top_languages.map(lang => (
+                        <span key={lang} className="px-2.5 py-0.5 bg-slate-800 text-white text-[10px] font-bold rounded-md shadow-sm">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            
+            {!githubModal.isLoading && (
+              <div className="mt-5 pt-4 border-t border-slate-100">
+                <button 
+                  onClick={() => setGithubModal({ ...githubModal, isOpen: false })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold transition"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
           </div>
         </div>,
         document.body
