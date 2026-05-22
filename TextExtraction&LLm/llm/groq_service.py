@@ -43,10 +43,10 @@ Identifie EXCLUSIVEMENT ET EXACTEMENT :
 - Les numéros de téléphone (toutes les formes : +212..., 06..., 0600...)
 - Les dates de naissance / âge
 - Les adresses physiques complètes ou partielles (Ville, Rue, Code Postal)
-- Les identifiants personnels visibles (URL LinkedIn, profil GitHub, URL de portfolio)
+- Les URL LinkedIn, GitHub ou Portfolio (UNIQUEMENT si l'URL complet est écrit textuellement. Ne sélectionne PAS les mots génériques comme "LinkedIn" ou "GitHub" seuls).
 
 RÈGLE VITALE : Tu dois COPIER-COLLER EXACTEMENT (au caractère près) les mots tels qu'ils sont écrits dans le texte du CV.
-Ne normalise PAS, ne corrige PAS les fautes, ne reformate PAS les numéros.
+Ne normalise PAS, ne corrige PAS les fautes, ne reformate PAS les numéros. NE DEDUIS PAS ET N'INVENTE PAS d'URL LinkedIn si elle n'est pas explicitement écrite de A à Z.
 
 Retourne UNIQUEMENT un JSON avec cette liste :
 {{

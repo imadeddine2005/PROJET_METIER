@@ -58,6 +58,7 @@ from llm.groq_service import (
 )
 from extraction.extractor import extract_text
 from extraction.redactor import redact_pdf
+from llm.github_service import extract_github_link, fetch_github_stats
 
 app = Flask(__name__)
 CORS(app)  # Permettre les appels depuis Spring Boot
@@ -318,6 +319,62 @@ def generate_email():
     return jsonify({
         "email": email_draft
     }), 200
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTE 5 : Analyse GitHub à la demande
+# ═══════════════════════════════════════════════════════════════════════════════
+@app.route("/api/analyze-github", methods=["POST"])
+def analyze_github():
+    """
+    Extrait l'URL GitHub d'un CV (PDF) et récupère les statistiques publiques du candidat.
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "Fichier 'file' manquant"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Nom de fichier vide"}), 400
+
+    temp_input = None
+    try:
+        suffix = os.path.splitext(file.filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            file.save(tmp.name)
+            temp_input = tmp.name
+
+        # Extraction de l'URL GitHub
+        github_url = extract_github_link(temp_input)
+        
+        if not github_url:
+            return jsonify({
+                "found": False,
+                "message": "Aucun lien GitHub n'a été trouvé dans ce CV."
+            }), 200
+
+        # Récupération des statistiques GitHub
+        github_stats = fetch_github_stats(github_url)
+        
+        if not github_stats:
+            return jsonify({
+                "found": True,
+                "url": github_url,
+                "message": "Le lien a été trouvé, mais les statistiques n'ont pas pu être récupérées (compte privé ou limite d'API)."
+            }), 200
+
+        # Renvoi des résultats
+        return jsonify({
+            "found": True,
+            "data": github_stats
+        }), 200
+
+    except Exception as e:
+        print(f"Erreur /api/analyze-github : {e}")
+        return jsonify({"error": f"Erreur serveur : {str(e)}"}), 500
+        
+    finally:
+        if temp_input and os.path.exists(temp_input):
+            os.remove(temp_input)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)

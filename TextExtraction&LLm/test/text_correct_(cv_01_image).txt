@@ -1,0 +1,31 @@
+FORMATION
+Said KHAYARI
+Élève-Ingénieur en Cloud & DevOps - Réseaux et Télécommunications
+Rabat, Maroc +212 657-256871 | saidjr463@gmail.com | in Said KHAYARI
+Institut National des Postes et Télécommunications (INPT)
+Diplôme d'Ingénieur d'État, filière SMART-ICT
+Classes Préparatoires aux Grandes Écoles (CPGE)
+Filière MP (Mathématiques - Physique) - Lycée Ibn Taymiya
+Lycée d'Excellence de Benguerir (LYDEX)
+Baccalauréat Sciences Mathématiques B (SM-B)
+EXPÉRIENCE PROFESSIONNELLE
+Orange Business
+Projet d'Ingénierie en Partenariat (Orchestration Cloud)
+Rabat, Maroc
+Depuis Sep 2024
+Marrakech, Maroc
+Sep 2022-Juil 2024
+Benguerir, Maroc
+Sep 2019 Juin 2022
+Rabat, Maroc
+Fév 2026 - Présent
+• Étude d'impact et réalisation d'un Proof of Concept (POC) pour la migration d'un moteur BPMN de Camunda 7 vers
+Kogito.
+• Analyse des performances en environnement Cloud-Native et orchestration de workflows complexes sur Kubernetes.
+• Mise en place de solutions d'automatisation de processus métiers pour une infrastructure scalable.
+PROJETS ACADÉMIQUES
+CoDrive: Plateforme de Covoiturage Solidaire (Approche DevSecOps)
+Mar 2026 Avr 2026
+Développement d'une architecture microservices avec Fast API et PostgreSQL intégrant des quotas de trajets.
+• Mise en place d'un pipeline CI/CD GitHub Actions avec tests unitaires (Pytest) et scans de sécurité (Trivy).
+- Définition de l'infrastructura via Tannafarm nour un dánlaiament Cloud automation

@@ -31,7 +31,7 @@ public class EmailController {
     @Autowired
     private IEmailService emailService;
 
-    @Value("${app.ai.base-url:http://localhost:5001}")
+    @Value("${app.ai.base-url:http://llm:5001}")
     private String aiBaseUrl;
 
     @PostMapping("/{id}/generate-email")

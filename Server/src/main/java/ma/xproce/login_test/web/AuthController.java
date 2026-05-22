@@ -44,7 +44,7 @@ public class AuthController {
         this.jwtGenerator = jwtGenerator;
         this.auditService = auditService;
 }
-    }
+    
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponseDto>> login(@Valid @RequestBody LoginDto logindto) {
