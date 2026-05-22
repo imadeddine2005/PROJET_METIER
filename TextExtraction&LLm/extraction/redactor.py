@@ -2,6 +2,8 @@ import fitz
 import os
 import io
 import pytesseract
+import cv2
+import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
 
@@ -88,136 +90,173 @@ def _find_rects_in_native_pdf(page, phrases: list) -> list:
     return all_rects
 
 
-def _find_rects_in_image_page(page, phrases: list) -> list:
+def _find_rects_in_image_page(page, phrases: list, file_path: str, page_number: int) -> list:
     """
-    Recherche de phrases dans une page IMAGE via pytesseract.image_to_data().
-    Retourne des Rect en coordonnées PDF en convertissant les pixels.
+    Recherche de phrases dans une page IMAGE en utilisant le Spatial Cache 
+    avec Mapping Alphanumérique (Robuste contre les hallucinations de ponctuation).
     """
-    # 1. Rendre la page en image
-    mat = fitz.Matrix(ZOOM, ZOOM)
-    pix = page.get_pixmap(matrix=mat)
-    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("L")
-
-    # 2. Extraire les données mots avec coordonnées en pixels
-    try:
-        data = pytesseract.image_to_data(
-            img,
-            lang="fra+eng",
-            config="--oem 1 --psm 1",
-            output_type=pytesseract.Output.DICT
-        )
-    except Exception as e:
-        print(f"  [WARN] pytesseract.image_to_data failed: {e}")
-        return []
-
-    # 3. Scaling : pixels → coordonnées PDF
-    # La page PDF fait page.rect.width x page.rect.height pts.
-    # L'image rendue fait (pix.width x pix.height) pixels.
-    scale_x = page.rect.width  / pix.width
-    scale_y = page.rect.height / pix.height
-
-    # 4. Construire une liste de mots
-    words_data = []  # (x0, y0, x1, y1, text) en pts PDF
-    n = len(data["text"])
-    for i in range(n):
-        word_text = str(data["text"][i]).strip()
-        if not word_text:
-            continue
-        conf = int(data["conf"][i])
-        if conf < 30:   # Ignorer les mots peu fiables
-            continue
-        x = data["left"][i]
-        y = data["top"][i]
-        w = data["width"][i]
-        h = data["height"][i]
-        # Convertir en pts PDF
-        x0 = x * scale_x
-        y0 = y * scale_y
-        x1 = (x + w) * scale_x
-        y1 = (y + h) * scale_y
-        words_data.append((x0, y0, x1, y1, word_text))
-
-    # 5. Chercher chaque phrase dans les mots extraits
+    from extraction.spatial_cache import OCR_SPATIAL_CACHE, get_cache_key
+    from pytesseract import Output
+    import re
+    
     all_rects = []
-    for phrase in phrases:
-        phrase_clean = phrase.strip()
-        if not phrase_clean or len(phrase_clean) < 2:
-            continue
-
-        phrase_lower = phrase_clean.lower()
-        phrase_words = phrase_lower.split()
-
-        matched = False
-
-        # -- Recherche de la phrase entière (séquentielle) --
-        if len(phrase_words) > 1:
-            for i in range(len(words_data) - len(phrase_words) + 1):
-                match = True
-                for j, pw in enumerate(phrase_words):
-                    ocr_word = words_data[i + j][4].lower()
-                    # Comparaison stricte : le mot OCR DOIT être le même (ou très proche)
-                    if pw != ocr_word and pw not in ocr_word and ocr_word not in pw:
-                        match = False
-                        break
-                if match:
-                    x0 = min(words_data[i + j2][0] for j2 in range(len(phrase_words)))
-                    y0 = min(words_data[i + j2][1] for j2 in range(len(phrase_words)))
-                    x1 = max(words_data[i + j2][2] for j2 in range(len(phrase_words)))
-                    y1 = max(words_data[i + j2][3] for j2 in range(len(phrase_words)))
-                    all_rects.append(fitz.Rect(x0, y0, x1, y1))
-                    matched = True
-
-        # -- Fallback mot par mot (SÉCURISÉ) --
-        # Seulement pour les mots d‑au moins 5 caractères pour éviter les faux positifs
-        # Les URLs/emails sont traités comme un seul mot (pas d‑éclatement)
-        if not matched:
-            is_url_or_email = any(c in phrase_lower for c in ['@', '/', '.com', 'linkedin', 'github', 'http'])
+    cache_key = get_cache_key(file_path, page_number)
+    
+    if cache_key in OCR_SPATIAL_CACHE:
+        print(f"  [VISION] Utilisation du Spatial Cache (ZÉRO OCR supplémentaire) pour la page {page_number + 1}...")
+        words_data = OCR_SPATIAL_CACHE[cache_key]
+        
+        # 1. Reconstruire un texte purement ALPHANUMÉRIQUE et mapper à l'index de mot
+        # Cela ignore les espaces, les sauts de ligne et la ponctuation (ex: '+' vs '&')
+        full_text_alphanum = ""
+        alphanum_to_word = []
+        
+        for i, w_info in enumerate(words_data):
+            word_str = w_info["text"].lower()
             
-            if is_url_or_email:
-                # Pour les URLs : chercher le token le plus long (ex: "imadeddineoukrati25")
-                long_tokens = [w for w in phrase_lower.replace('@', ' ').replace('/', ' ').split() if len(w) >= 6]
-                for token in long_tokens:
-                    for (x0, y0, x1, y1, wt) in words_data:
-                        if token in wt.lower():
-                            all_rects.append(fitz.Rect(x0, y0, x1, y1))
-                            matched = True
-            else:
-                # Pour les noms simples : mots EXACTS de 5+ caractères uniquement
-                for pw in phrase_words:
-                    if len(pw) < 5:
-                        continue  # Ignorer les mots trop courts ("de", "le", "la"...)
-                    for (x0, y0, x1, y1, wt) in words_data:
-                        # Le mot OCR doit aussi être suffisamment long (évite les icônes/bullets)
-                        if len(wt) < 4:
-                            continue
-                        # Correspondance : le mot OCR doit commencer par le mot cherché (pas l'inverse)
-                        if pw == wt.lower() or wt.lower().startswith(pw):
-                            all_rects.append(fitz.Rect(x0, y0, x1, y1))
-                            matched = True
+            for char in word_str:
+                if char.isalnum():
+                    full_text_alphanum += char
+                    alphanum_to_word.append(i)
+                    
+        # 2. Chercher les phrases nettoyées dans le texte alphanumérique
+        for phrase in phrases:
+            # Nettoyer la phrase renvoyée par le LLM (garder uniquement lettres/chiffres)
+            phrase_alphanum = "".join([c.lower() for c in str(phrase) if c.isalnum()])
             
+            if not phrase_alphanum or len(phrase_alphanum) < 3: 
+                continue
+                
+            # Trouver toutes les occurrences
+            for match in re.finditer(re.escape(phrase_alphanum), full_text_alphanum):
+                start_idx = match.start()
+                end_idx = match.end() - 1 # Dernier caractère inclus
+                
+                # Récupérer l'index du premier et du dernier mot OCR
+                start_word_idx = alphanum_to_word[start_idx]
+                end_word_idx = alphanum_to_word[end_idx]
+                
+                if start_word_idx != -1 and end_word_idx != -1:
+                    # Fusionner les rectangles des mots correspondants
+                    merged_rect = fitz.Rect(words_data[start_word_idx]["rect"])
+                    for i in range(start_word_idx + 1, end_word_idx + 1):
+                        merged_rect = merged_rect | words_data[i]["rect"]
+                    
+                    all_rects.append(merged_rect)
+                    print(f"  [CACHE-BBOX] Localisé (Alphanum Exact) : '{phrase}' -> {merged_rect}")
+                    
+        return all_rects
+        
+    else:
+        print(f"  [WARN] Spatial Cache introuvable pour la page {page_number + 1}. Fallback OCR d'urgence...")
+        mat = fitz.Matrix(3.0, 3.0)
+        pix = page.get_pixmap(matrix=mat)
+        img_bytes = pix.tobytes("png")
+        img = Image.open(io.BytesIO(img_bytes))
+        custom_config = r'--oem 1 --psm 1'
+        data = pytesseract.image_to_data(img, lang="fra+eng", config=custom_config, output_type=Output.DICT)
+        scale_x = page.rect.width / pix.width
+        scale_y = page.rect.height / pix.height
 
-    return all_rects
+        for phrase in phrases:
+            phrase_str = str(phrase).strip().lower()
+            if not phrase_str or len(phrase_str) < 3: continue
+            for i, word in enumerate(data['text']):
+                word_str = str(word).strip().lower()
+                if not word_str or len(word_str) < 3: continue
+                if word_str in phrase_str or phrase_str in word_str:
+                    x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
+                    rect = fitz.Rect(x * scale_x, y * scale_y, (x + w) * scale_x, (y + h) * scale_y)
+                    all_rects.append(rect)
+        return all_rects
+
+
+def _find_face_rects(page) -> list:
+    """
+    Détecte les visages sur une page PDF (utilisé pour caviarder les photos de profil).
+    Retourne une liste de fitz.Rect.
+    """
+    rects = []
+    try:
+        # 1. Rendre la page en image haute résolution
+        mat = fitz.Matrix(3.0, 3.0)
+        pix = page.get_pixmap(matrix=mat)
+        
+        # 2. Convertir Pixmap en tableau NumPy (format OpenCV)
+        img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+        
+        # 3. Convertir en niveaux de gris
+        if pix.n == 4: # RGBA
+            img_gray = cv2.cvtColor(img_array, cv2.COLOR_RGBA2GRAY)
+        elif pix.n == 3: # RGB
+            img_gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+        else:
+            img_gray = img_array
+            
+        # 4. Charger le classifieur Haar Cascade pour les visages de face
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        
+        # 5. Détecter les visages (minSize garantit qu'on ne détecte pas de minuscules icônes)
+        faces = face_cascade.detectMultiScale(
+            img_gray, 
+            scaleFactor=1.1, 
+            minNeighbors=5, 
+            minSize=(50, 50)
+        )
+        
+        # 6. Re-projeter les coordonnées pixels vers PDF
+        scale_x = page.rect.width / pix.width
+        scale_y = page.rect.height / pix.height
+        
+        for (x, y, w, h) in faces:
+            # On ajoute un peu de marge (padding) autour du visage pour cacher toute la tête
+            marge = int(w * 0.2)
+            x_start = max(0, x - marge)
+            y_start = max(0, y - marge)
+            x_end = min(pix.width, x + w + marge)
+            y_end = min(pix.height, y + h + marge)
+            
+            rect = fitz.Rect(
+                x_start * scale_x, 
+                y_start * scale_y, 
+                x_end * scale_x, 
+                y_end * scale_y
+            )
+            rects.append(rect)
+            
+    except Exception as e:
+        print(f"  [WARN] Erreur lors de la détection faciale : {e}")
+        
+    return rects
 
 
 def redact_pdf(original_pdf_path: str, sensitive_phrases: list, output_pdf_path: str):
     """
-    Redaction intelligente supportant TXT et IMG (OCR pytesseract direct).
+    Redaction intelligente supportant TXT et IMG. Utilise le Spatial Cache pour les IMG.
     """
     _configure_tesseract()
 
     try:
         doc = fitz.open(original_pdf_path)
 
-        for page in doc:
+        for page_number, page in enumerate(doc):
             # 1. Détecter si la page est image ou texte natif
             text_content = page.get_text("text").strip()
             is_image_page = len(text_content) < 50
 
             # 2. Trouver les rectangles sensibles
             if is_image_page:
-                sensitive_rects = _find_rects_in_image_page(page, sensitive_phrases)
+                sensitive_rects = _find_rects_in_image_page(page, sensitive_phrases, original_pdf_path, page_number)
             else:
                 sensitive_rects = _find_rects_in_native_pdf(page, sensitive_phrases)
+
+            # --- NOUVEAU : Détection et ajout des visages ---
+            face_rects = _find_face_rects(page)
+            if face_rects:
+                print(f"  [VISION] {len(face_rects)} visage(s) détecté(s) sur la page {page_number + 1}.")
+                sensitive_rects.extend(face_rects)
+            # ------------------------------------------------
 
             # 3. Appliquer les masquages
             if sensitive_rects:
